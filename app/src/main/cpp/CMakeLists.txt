@@ -11,31 +11,30 @@ cmake_minimum_required(VERSION 3.22.1)
 # build script scope).
 project("SocketClientDemo22")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -Wall -fexceptions -DXLOCALE_NOT_USED=1 -DNULL=0 -DNO_SSTREAM=1 -DSOCKLEN_T=socklen_t -UIP_ADD_SOURCE_MEMBERSHIP -DNO_OPENSSL=ON")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -Wall -fexceptions -DXLOCALE_NOT_USED=1 -DNULL=0 -DNO_SSTREAM=1 -DSOCKLEN_T=socklen_t -UIP_ADD_SOURCE_MEMBERSHIP")
 
 # OPEN SSL 的相关编译路径
 set(OPENSSL_ROOT_DIR ${CMAKE_SOURCE_DIR}/openssl)
 set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
-set(OPENSSL_LIB_DIR ${OPENSSL_ROOT_DIR}/lib)
 
-
-# 添加 Live555 头文件的包含目录
-include_directories("./include/UsageEnvironment/")
-include_directories("./include/groupsock/")
-include_directories("./include/liveMedia/")
-include_directories("./include/BasicUsageEnvironment/")
-
+set(OPENSSL_CRYPTO_LIB ${CMAKE_SOURCE_DIR}/lib/libcrypto.so)
+set(OPENSSL_SSL_LIB ${CMAKE_SOURCE_DIR}/lib/libssl.so)
 
 # 包含 OpenSSL 的头文件
 include_directories(${OPENSSL_INCLUDE_DIR})
 
-## 查找 OpenSSL 库
-#find_library(SSL_LIB ssl PATHS ${OPENSSL_LIB_DIR})
-#find_library(CRYPTO_LIB crypto PATHS ${OPENSSL_LIB_DIR})
 
+set(OPENSSL_LIVE555_DIR ${CMAKE_SOURCE_DIR}/include)
+# 添加 Live555 头文件的包含目录
+include_directories("${OPENSSL_LIVE555_DIR}/UsageEnvironment/")
+include_directories("${OPENSSL_LIVE555_DIR}/groupsock/")
+include_directories("${OPENSSL_LIVE555_DIR}/liveMedia/")
+include_directories("${OPENSSL_LIVE555_DIR}/BasicUsageEnvironment/")
 
-# 添加 Live555 库文件的路径
-link_directories("./lib")
+set(LIVE555_BASIC_USAGE_ENVIRONMENT_LIB ${CMAKE_SOURCE_DIR}/lib/libBasicUsageEnvironment.a)
+set(LIVE555_GROUP_SOCK_LIB ${CMAKE_SOURCE_DIR}/lib/libgroupsock.a)
+set(LIVE555_LIVE_MEDIA_LIB ${CMAKE_SOURCE_DIR}/lib/libliveMedia.a)
+set(LIVE555_USAGE_ENVIRONMENT_LIB ${CMAKE_SOURCE_DIR}/lib/libUsageEnvironment.a)
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -55,6 +54,7 @@ add_executable(${CMAKE_PROJECT_NAME}
         DumpSink.cpp
         KtStreamClientState.cpp
         KtRtspClient.cpp
+        sdpUtils.cpp
         NjdaStream.cpp
 )
 
@@ -65,10 +65,14 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
         android
         mediandk
-        usageEnvironment
-        groupsock
-        liveMedia
-        BasicUsageEnvironment
-        ${SSL_LIB}
-        ${CRYPTO_LIB}
+
+        #Live555 lib
+        ${LIVE555_USAGE_ENVIRONMENT_LIB}
+        ${LIVE555_GROUP_SOCK_LIB}
+        ${LIVE555_LIVE_MEDIA_LIB}
+        ${LIVE555_BASIC_USAGE_ENVIRONMENT_LIB}
+
+        #openSSL lib
+        ${OPENSSL_CRYPTO_LIB}
+        ${OPENSSL_SSL_LIB}
         log)
