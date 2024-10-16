@@ -6,8 +6,8 @@
 #define SOCKECTDEMO2_KTSTREAMCLIENTSTATE_H
 
 
-#include "../live555/include/liveMedia/MediaSession.hh"
-#include "../live555/include/UsageEnvironment/UsageEnvironment.hh"
+#include "../../live555/include/liveMedia/MediaSession.hh"
+#include "../../live555/include/UsageEnvironment/UsageEnvironment.hh"
 
 class KtStreamClientState {
 public:

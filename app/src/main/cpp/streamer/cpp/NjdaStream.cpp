@@ -1,7 +1,7 @@
-#include "include/KtRtspClient.h"
-#include "include/DummySink.h"
-#include "include/log_utils.h"
-#include "live555/include/BasicUsageEnvironment/BasicUsageEnvironment.hh"
+#include "../include/KtRtspClient.h"
+#include "../include/DummySink.h"
+#include "../include/log_utils.h"
+#include "../../live555/include/BasicUsageEnvironment/BasicUsageEnvironment.hh"
 
 #include <thread>
 #include <iostream>

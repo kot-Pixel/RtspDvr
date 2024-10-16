@@ -2,7 +2,7 @@
 // Created by Tom on 2024/10/11.
 //
 
-#include "include/KtStreamClientState.h"
+#include "../include/KtStreamClientState.h"
 
 KtStreamClientState::KtStreamClientState()
         : iter(NULL), session(NULL), subsession(NULL), streamTimerTask(NULL), duration(0.0) {

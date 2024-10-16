@@ -1,4 +1,4 @@
-#include "include/DummySink.h"
+#include "../include/DummySink.h"
 
 #define DUMMY_SINK_RECEIVE_BUFFER_SIZE 100000
 

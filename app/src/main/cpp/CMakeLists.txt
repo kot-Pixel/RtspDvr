@@ -51,11 +51,11 @@ set(LIVE555_USAGE_ENVIRONMENT_LIB ${CMAKE_SOURCE_DIR}/live555/lib/libUsageEnviro
 # used in the AndroidManifest.xml file.
 add_executable(${CMAKE_PROJECT_NAME}
         # List C/C++ source files with relative paths to this CMakeLists.txt.
-        DumpSink.cpp
-        KtStreamClientState.cpp
-        KtRtspClient.cpp
-        sdpUtils.cpp
-        NjdaStream.cpp
+        streamer/cpp/DumpSink.cpp
+        streamer/cpp/KtStreamClientState.cpp
+        streamer/cpp/KtRtspClient.cpp
+        streamer/cpp/sdpUtils.cpp
+        streamer/cpp/NjdaStream.cpp
 )
 
 # Specifies libraries CMake should link to your target library. You

@@ -6,7 +6,7 @@
 #include <media/NdkMediaFormat.h>
 #include <android/log.h>
 #include <thread>
-#include "include/log_utils.h"
+#include "../include/log_utils.h"
 
 #define SOCKET_PATH "/data/local/tmp/source.sockect"
 

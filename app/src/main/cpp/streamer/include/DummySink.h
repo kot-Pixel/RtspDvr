@@ -6,9 +6,9 @@
 #define SOCKECTDEMO2_DUMMYSINK_H
 
 
-#include "../live555/include/liveMedia/MediaSink.hh"
-#include "../live555/include/UsageEnvironment/UsageEnvironment.hh"
-#include "../live555/include/liveMedia/MediaSession.hh"
+#include "../../live555/include/liveMedia/MediaSink.hh"
+#include "../../live555/include/UsageEnvironment/UsageEnvironment.hh"
+#include "../../live555/include/liveMedia/MediaSession.hh"
 
 
 class DummySink: public MediaSink {

@@ -6,9 +6,9 @@
 #define SOCKECTDEMO2_KTRTSPCLIENT_H
 
 #include "KtStreamClientState.h"
-#include "../live555/include/UsageEnvironment/UsageEnvironment.hh"
-#include "../live555/include/liveMedia/RTSPClient.hh"
-#include "../live555/include/groupsock/NetAddress.hh"
+#include "../../live555/include/UsageEnvironment/UsageEnvironment.hh"
+#include "../../live555/include/liveMedia/RTSPClient.hh"
+#include "../../live555/include/groupsock/NetAddress.hh"
 
 
 class KtRtspClient: public RTSPClient {
