@@ -1,0 +1,26 @@
+//
+// Created by Tom on 2024/10/11.
+//
+
+#ifndef SOCKECTDEMO2_KTSTREAMCLIENTSTATE_H
+#define SOCKECTDEMO2_KTSTREAMCLIENTSTATE_H
+
+#include "liveMedia/MediaSession.hh"
+#include "UsageEnvironment/UsageEnvironment.hh"
+
+class KtStreamClientState {
+public:
+    KtStreamClientState();
+    virtual ~KtStreamClientState();
+
+public:
+    MediaSubsessionIterator* iter;
+    MediaSession* session;
+    MediaSubsession* subsession;
+    TaskToken streamTimerTask;
+
+    int socketId = -1;
+    double duration;
+};
+
+#endif //SOCKECTDEMO2_KTSTREAMCLIENTSTATE_H
