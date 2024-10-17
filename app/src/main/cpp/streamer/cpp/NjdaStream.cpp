@@ -9,9 +9,71 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <media/NdkMediaCodec.h>
 
+
+static AMediaCodec* codec = nullptr;
+
+int configureAndStartMediaCodec() {
+    LOGI("start configure and start media codec");
+    codec = AMediaCodec_createDecoderByType("video/avc");
+    if (!codec) {
+        printf("Failed to create codec");
+        return -1;
+    }
+    AMediaFormat* format = AMediaFormat_new();
+    AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, "video/avc");
+    AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, 1280);
+    AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, 720);
+    AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, 0x7F420888);
+    media_status_t configure_status = AMediaCodec_configure(codec, format, nullptr, nullptr, 0);
+    if (configure_status != AMEDIA_OK) {
+        printf("Failed to configure codec");
+        AMediaCodec_delete(codec);
+        AMediaFormat_delete(format);
+        return -1;
+    }
+    printf("MediaCodec start success");
+    media_status_t start_status = AMediaCodec_start(codec);
+    if (start_status != AMEDIA_OK) {
+        printf("Failed to start codec");
+        AMediaCodec_delete(codec);
+        AMediaFormat_delete(format);
+        return -1;
+    }
+    return 0;
+}
+
+void decodeH264ThreadFunction() {
+    if (codec == nullptr) {
+        return;
+    }
+    while (true) {
+        AMediaCodecBufferInfo info;
+        ssize_t outIdx = AMediaCodec_dequeueOutputBuffer(codec, &info, 2000);  // 等待2秒
+        if (outIdx >= 0) {
+            uint8_t* outputBuf = AMediaCodec_getOutputBuffer(codec, outIdx, nullptr);
+            if (outputBuf) {
+                LOGI("Decoded frame, size: %d", info.size);
+            }
+            // 释放输出缓冲区
+            AMediaCodec_releaseOutputBuffer(codec, outIdx, false);
+        } else if (outIdx == -1) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            LOGI("decodeH264ThreadFunction out of buffer, size: %d",outIdx);
+        }
+    }
+}
 
 int main() {
+
+    int result = configureAndStartMediaCodec();
+
+    LOGI("success configure and start mediacodec");
+
+    std::thread decodeH264Thread(decodeH264ThreadFunction);
+
+    decodeH264Thread.detach();
 
 //    int server_fd, client_id;
 //    server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -172,6 +234,14 @@ void setupNextSubsession(RTSPClient *rtspClient) {
     }
 }
 
+
+void printHex(uint8_t* data, size_t length) {
+    for (size_t i = 0; i < length; ++i) {
+        printf("%02x ", data[i]);
+    }
+    printf("\n");
+}
+
 void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultString) {
     do {
         UsageEnvironment &env = rtspClient->envir(); // alias
@@ -209,6 +279,9 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
             std::string xx = extractSpropParameterSets(fmtpLine);
             std::string spsPPs = removeDelimiter(xx, ',');
 
+            LOGI("fmtp Line info is %s", xx.c_str());
+            LOGI("fmtp Line info is %s", spsPPs.c_str());
+
             //结论是相同的
 
 //            std::string original = "Z/QAKpGWgHgCJ+JwEQAAAwABAAADAHiPGDKg,aM4PGSA=";
@@ -216,6 +289,25 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
 //            std::string pps_base64 = "aM4PGSA=";
 //
             std::vector<uint8_t> originalChar = stpStringBase64Decode(spsPPs);
+
+            LOGI("originalChar size %d", originalChar.size());
+
+            ssize_t bufIdx = AMediaCodec_dequeueInputBuffer(codec, 0);
+
+            LOGI("bufIdx %d", bufIdx);
+
+            if (bufIdx >= 0) {
+                size_t bufSize;
+                uint8_t* inputBuf = AMediaCodec_getInputBuffer(codec, bufIdx, &bufSize);
+                memcpy(inputBuf, originalChar.data(), originalChar.size());
+                printHex(inputBuf, originalChar.size());
+                LOGI("AMediaCodec bufIdx format changed", inputBuf);
+                AMediaCodec_queueInputBuffer(codec, bufIdx, 0, originalChar.size(), 0, -2);
+            } else if (bufIdx == -2) {
+                LOGI("AMediaCodec bufIdx format changed");
+            } else if (bufIdx == -1) {
+                LOGI("AMediaCodec input try later");
+            }
 //            std::vector<uint8_t> sps_base64Char = stpStringBase64Decode(sps_base64);
 //            std::vector<uint8_t> pps_base64Char = stpStringBase64Decode(pps_base64);
 //
@@ -241,7 +333,7 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
         }
 
 
-        scs.subsession->sink = DummySink::createNew(env, *scs.subsession, rtspClient->url(), scs.socketId);
+        scs.subsession->sink = DummySink::createNew(env, *scs.subsession, rtspClient->url(), scs.socketId, codec);
         // perhaps use your own custom "MediaSink" subclass instead
         if (scs.subsession->sink == NULL) {
             env << *rtspClient << "Failed to create a data sink for the \"" << *scs.subsession

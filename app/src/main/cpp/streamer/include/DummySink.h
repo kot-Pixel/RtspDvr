@@ -6,6 +6,7 @@
 #define SOCKECTDEMO2_DUMMYSINK_H
 
 
+#include <media/NdkMediaCodec.h>
 #include "../../live555/include/liveMedia/MediaSink.hh"
 #include "../../live555/include/UsageEnvironment/UsageEnvironment.hh"
 #include "../../live555/include/liveMedia/MediaSession.hh"
@@ -15,10 +16,10 @@ class DummySink: public MediaSink {
 public:
     static DummySink* createNew(UsageEnvironment& env,
                                 MediaSubsession& subsession, // identifies the kind of data that's being received
-                                char const* streamId, int socketId); // identifies the stream itself (optional)
+                                char const* streamId, int socketId, AMediaCodec* codec ); // identifies the stream itself (optional)
 
 private:
-    DummySink(UsageEnvironment& env, MediaSubsession& subsession, char const* streamId, int socket_id);
+    DummySink(UsageEnvironment& env, MediaSubsession& subsession, char const* streamId, int socket_id, AMediaCodec* codec );
     // called only by "createNew()"
     virtual ~DummySink();
 
@@ -42,6 +43,7 @@ private:
     u_int8_t* spsReceiveBuffer;
     int ppsReceived = 0;
     u_int8_t* ppsReceiveBuffer;
+    AMediaCodec* fcodec;
 };
 
 #endif //SOCKECTDEMO2_DUMMYSINK_H

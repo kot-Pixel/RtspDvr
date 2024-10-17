@@ -7,6 +7,7 @@
 #define LOG_UTIL_H
 
 #include <android/log.h>
+#include <RTSPClient.hh>
 
 // 定义日志标签
 #define LOG_TAG "KT_SDK"

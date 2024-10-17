@@ -6,16 +6,17 @@
 //
 // Created by Tom on 2024/10/11.
 //
-DummySink* DummySink::createNew(UsageEnvironment& env, MediaSubsession& subsession, char const* streamId, int socket) {
-    return new DummySink(env, subsession, streamId, socket);
+DummySink* DummySink::createNew(UsageEnvironment& env, MediaSubsession& subsession, char const* streamId, int socket, AMediaCodec* codec) {
+    return new DummySink(env, subsession, streamId, socket, codec);
 }
 
-DummySink::DummySink(UsageEnvironment& env, MediaSubsession& subsession, char const* streamId, int socket)
+DummySink::DummySink(UsageEnvironment& env, MediaSubsession& subsession, char const* streamId, int socket, AMediaCodec* codec)
         : MediaSink(env),
           fSubsession(subsession) {
     fStreamId = strDup(streamId);
     fReceiveBuffer = new u_int8_t[DUMMY_SINK_RECEIVE_BUFFER_SIZE];
     fSocketId = socket;
+    fcodec = codec;
 }
 
 DummySink::~DummySink() {
@@ -46,8 +47,21 @@ void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes
     uint8_t nalHeader4 = fReceiveBuffer[3]; // 第一个字节是 NALU 头
 
     // 打印 NALU 头信息
-    printf("NALU Header: 0x%02X\n", nalHeader);
-    printf("sdp decription: %s\n", fSubsession.savedSDPLines());
+//    printf("NALU Header: 0x%02X\n", nalHeader);
+//    printf("sdp decription: %s\n", fSubsession.savedSDPLines());
+
+
+    ssize_t bufIdx = AMediaCodec_dequeueInputBuffer(fcodec, 0);
+    if (bufIdx >= 0) {
+        size_t bufSize;
+        uint8_t* inputBuf = AMediaCodec_getInputBuffer(fcodec, bufIdx, &bufSize);
+        memcpy(inputBuf, fReceiveBuffer, frameSize);
+        AMediaCodec_queueInputBuffer(fcodec, bufIdx, 0, frameSize, 0, 0);
+    } else if (bufIdx == -2) {
+        printf("AMediaCodec bufIdx format changed");
+    } else if (bufIdx == -1) {
+        printf("AMediaCodec input try later");
+    }
 
 //    // 查找 fmtp 行
 //    std::string sdpLines(fSubsession.savedSDPLines());
