@@ -1,6 +1,7 @@
 #include "../include/KtRtspClient.h"
 #include "../include/DummySink.h"
 #include "../include/log_utils.h"
+#include "../include/sdpUtils.h"
 #include "../../live555/include/BasicUsageEnvironment/BasicUsageEnvironment.hh"
 
 #include <thread>
@@ -191,9 +192,54 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
         }
         env << ")\n";
 
-        // Having successfully setup the subsession, create a data sink for it, and call "startPlaying()" on it.
-        // (This will prepare the data sink to receive data; the actual flow of data from the client won't start happening until later,
-        // after we've sent a RTSP "PLAY" command.)
+        // 查找 fmtp 行
+        std::string sdpLines(scs.subsession->savedSDPLines());
+        std::string fmtpLine;
+        std::istringstream sdpStream(sdpLines);
+        std::string line;
+
+        while (std::getline(sdpStream, line)) {
+            if (line.find("a=fmtp:") != std::string::npos) {
+                fmtpLine = line;
+                break; // 找到 fmtp 行后退出循环
+            }
+        }
+
+        if (!fmtpLine.empty()) {
+            std::string xx = extractSpropParameterSets(fmtpLine);
+            std::string spsPPs = removeDelimiter(xx, ',');
+
+            //结论是相同的
+
+//            std::string original = "Z/QAKpGWgHgCJ+JwEQAAAwABAAADAHiPGDKg,aM4PGSA=";
+//            std::string sps_base64 = "Z/QAKpGWgHgCJ+JwEQAAAwABAAADAHiPGDKg";
+//            std::string pps_base64 = "aM4PGSA=";
+//
+            std::vector<uint8_t> originalChar = stpStringBase64Decode(spsPPs);
+//            std::vector<uint8_t> sps_base64Char = stpStringBase64Decode(sps_base64);
+//            std::vector<uint8_t> pps_base64Char = stpStringBase64Decode(pps_base64);
+//
+//            // 将两个 char 数组拼接
+//            std::vector<unsigned char> combined;
+//            combined.insert(combined.end(), sps_base64Char.begin(), sps_base64Char.end());
+//            combined.insert(combined.end(), pps_base64Char.begin(), pps_base64Char.end());
+
+//            // 比较两个结果是否相等
+//            if (combined.size() == originalChar.size() && memcmp(combined.data(), originalChar.data(), combined.size()) == 0) {
+//                LOGI("xxxxxxxxxxxx1");
+//            } else {
+//                LOGI("xxxxxxxxxxxx2");
+//            }
+
+//            LOGI("fmtp Line info is %s", xx.c_str());
+//            LOGI("fmtp Line info is %s", spsPPs.c_str());
+//            LOGI("fmtp Line info is %s", fmtpLine.c_str());
+
+//                std::for_each(originalChar.begin(), originalChar.end(), [](char x) {
+//                    LOGI("xxxxxxxxxxxx1  %02x", x);
+//                });
+        }
+
 
         scs.subsession->sink = DummySink::createNew(env, *scs.subsession, rtspClient->url(), scs.socketId);
         // perhaps use your own custom "MediaSink" subclass instead

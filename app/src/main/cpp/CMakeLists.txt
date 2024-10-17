@@ -17,8 +17,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -Wall -fexceptions 
 set(OPENSSL_ROOT_DIR ${CMAKE_SOURCE_DIR}/openssl)
 set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
 
-set(OPENSSL_CRYPTO_LIB ${OPENSSL_ROOT_DIR}/lib/libcrypto.so)
-set(OPENSSL_SSL_LIB ${OPENSSL_ROOT_DIR}/lib/libssl.so)
+set(OPENSSL_CRYPTO_LIB ${OPENSSL_ROOT_DIR}/lib/libcrypto.a)
+set(OPENSSL_SSL_LIB ${OPENSSL_ROOT_DIR}/lib/libssl.a)
 
 # 包含 OpenSSL 的头文件
 include_directories(${OPENSSL_INCLUDE_DIR})

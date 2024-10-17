@@ -1,4 +1,5 @@
 #include "../include/DummySink.h"
+#include "../include/sdpUtils.h"
 
 #define DUMMY_SINK_RECEIVE_BUFFER_SIZE 100000
 
@@ -48,41 +49,57 @@ void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes
     printf("NALU Header: 0x%02X\n", nalHeader);
     printf("sdp decription: %s\n", fSubsession.savedSDPLines());
 
-    //printf("NALU Header: 0x%02X\n", nalHeader2);
+//    // 查找 fmtp 行
+//    std::string sdpLines(fSubsession.savedSDPLines());
+//    std::string fmtpLine;
+//    std::istringstream sdpStream(sdpLines);
+//    std::string line;
+//
+//    while (std::getline(sdpStream, line)) {
+//        if (line.find("a=fmtp:") != std::string::npos) {
+//            fmtpLine = line;
+//            break; // 找到 fmtp 行后退出循环
+//        }
+//    }
+//
+//    if (!fmtpLine.empty()) {
+//        extractSpropParameterSets(fmtpLine);
+//    }
+//
+//    const char* sps_base64 = "your_sps_base64_string_here";
+//    const char* pps_base64 = "your_pps_base64_string_here";
+//
+//    std::vector<unsigned char> sps = stpStringBase64Decode(sps_base64);
+//    std::vector<unsigned char> pps = stpStringBase64Decode(pps_base64);
+//
+//    ssize_t bytes_sent_sps = send(fSocketId, sps.data(), sps.size(), 0);
 
-    //printf("NALU Header: 0x%02X\n", nalHeader3);
-
-    //printf("NALU Header: 0x%02X\n", nalHeader4);
-
-    // 获取 NAL 单元类型 (低6位)
-    uint8_t nalUnitType = nalHeader2 & 0x1F;
-
-    if (nalUnitType == 7) {
-        // SPS
-        printf("Received SPS NAL Unit\n");
-        printf("NALU Header: 0x%02X\n", nalHeader);
-        if (spsReceived == 0) {
-            spsReceived = 1;
-//            memcpy(spsReceiveBuffer, fReceiveBuffer, frameSize);
-        }
-    } else if (nalUnitType == 8) {
-        // PPS
-        printf("Received PPS NAL Unit\n");
-        printf("NALU Header: 0x%02X\n", nalHeader);
-        if (ppsReceived == 0) {
-            ppsReceived = 1;
-//            memcpy(ppsReceiveBuffer, fReceiveBuffer, frameSize);
-        }
-    } else {
-        // 其他 NAL 单元
-        //printf("Received NAL Unit Type: %d\n", nalUnitType);
-    }
-
-    if (spsReceived && ppsReceived) {
-        //printf("sps and pps buffer has create, now send client sps and pps buffer data");
-    } else {
-        //do noting.......
-    }
+//    if (nalUnitType == 7) {
+//        // SPS
+//        printf("Received SPS NAL Unit\n");
+//        printf("NALU Header: 0x%02X\n", nalHeader);
+//        if (spsReceived == 0) {
+//            spsReceived = 1;
+////            memcpy(spsReceiveBuffer, fReceiveBuffer, frameSize);
+//        }
+//    } else if (nalUnitType == 8) {
+//        // PPS
+//        printf("Received PPS NAL Unit\n");
+//        printf("NALU Header: 0x%02X\n", nalHeader);
+//        if (ppsReceived == 0) {
+//            ppsReceived = 1;
+////            memcpy(ppsReceiveBuffer, fReceiveBuffer, frameSize);
+//        }
+//    } else {
+//        // 其他 NAL 单元
+//        //printf("Received NAL Unit Type: %d\n", nalUnitType);
+//    }
+//
+//    if (spsReceived && ppsReceived) {
+//        //printf("sps and pps buffer has create, now send client sps and pps buffer data");
+//    } else {
+//        //do noting.......
+//    }
 
     continuePlaying();
 }
