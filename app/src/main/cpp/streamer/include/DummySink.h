@@ -16,7 +16,7 @@ class DummySink: public MediaSink {
 public:
     static DummySink* createNew(UsageEnvironment& env,
                                 MediaSubsession& subsession, // identifies the kind of data that's being received
-                                char const* streamId, int socketId, AMediaCodec* codec ); // identifies the stream itself (optional)
+                                char const* streamId, int socketId, AMediaCodec* codec); // identifies the stream itself (optional)
 
 private:
     DummySink(UsageEnvironment& env, MediaSubsession& subsession, char const* streamId, int socket_id, AMediaCodec* codec );
@@ -44,6 +44,7 @@ private:
     int ppsReceived = 0;
     u_int8_t* ppsReceiveBuffer;
     AMediaCodec* fcodec;
+    const char* filename = "/sdcard/header.264";
 };
 
 #endif //SOCKECTDEMO2_DUMMYSINK_H

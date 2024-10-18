@@ -1,7 +1,12 @@
 #include "../include/DummySink.h"
 #include "../include/sdpUtils.h"
+#include <fstream>
 
 #define DUMMY_SINK_RECEIVE_BUFFER_SIZE 100000
+
+const u_int8_t naulHeader[] = {
+        0x0,0x0,0x0,0x1
+};
 
 //
 // Created by Tom on 2024/10/11.
@@ -38,30 +43,58 @@ void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes
     //printf("afterGettingFrame invoke %d - %d", fSocketId, frameSize);
     if (frameSize < 2) return; // 确保有足够的数据
 
+    std::ofstream outputFile(filename, std::ios::binary | std::ios::app);
+    if (!outputFile) {
+        std::cerr << "Error: Could not open the file for writing." << std::endl;
+    }
 
+
+    // 写入 vector 的数据到文件
+    outputFile.write(reinterpret_cast<const char*>(naulHeader), 4);
+    outputFile.write(reinterpret_cast<const char*>(fReceiveBuffer), frameSize);
+    if (!outputFile) {
+        std::cerr << "Error: Could not write data to the file." << std::endl;
+    }
+
+    outputFile.close();
 
     // 确保 fReceiveBuffer 包含完整的 NALU
     uint8_t nalHeader = fReceiveBuffer[0]; // 第一个字节是 NALU 头
-    uint8_t nalHeader2 = fReceiveBuffer[1]; // 第一个字节是 NALU 头
-    uint8_t nalHeader3 = fReceiveBuffer[2]; // 第一个字节是 NALU 头
-    uint8_t nalHeader4 = fReceiveBuffer[3]; // 第一个字节是 NALU 头
+//    uint8_t nalHeader2 = fReceiveBuffer[1]; // 第一个字节是 NALU 头
+//    uint8_t nalHeader3 = fReceiveBuffer[2]; // 第一个字节是 NALU 头
+//    uint8_t nalHeader4 = fReceiveBuffer[3]; // 第一个字节是 NALU 头
 
     // 打印 NALU 头信息
-//    printf("NALU Header: 0x%02X\n", nalHeader);
+    printf("NALU Header: 0x%02X\n", nalHeader);
 //    printf("sdp decription: %s\n", fSubsession.savedSDPLines());
 
 
-    ssize_t bufIdx = AMediaCodec_dequeueInputBuffer(fcodec, 0);
-    if (bufIdx >= 0) {
-        size_t bufSize;
-        uint8_t* inputBuf = AMediaCodec_getInputBuffer(fcodec, bufIdx, &bufSize);
-        memcpy(inputBuf, fReceiveBuffer, frameSize);
-        AMediaCodec_queueInputBuffer(fcodec, bufIdx, 0, frameSize, 0, 0);
-    } else if (bufIdx == -2) {
-        printf("AMediaCodec bufIdx format changed");
-    } else if (bufIdx == -1) {
-        printf("AMediaCodec input try later");
-    }
+//    ssize_t bufIdx = AMediaCodec_dequeueInputBuffer(fcodec, 0);
+//    if (bufIdx >= 0) {
+//        size_t bufSize;
+//        uint8_t* inputBuf = AMediaCodec_getInputBuffer(fcodec, bufIdx, &bufSize);
+//        memcpy(inputBuf, naulHeader, 4);
+//        memcpy(inputBuf + 4, fReceiveBuffer, frameSize);
+
+//        if (inputBuf != NULL) {
+//            printf("inputBuf data (all bytes): ");
+//            for (size_t i = 0; i < bufSize; i++) {
+//                printf("%02x ", inputBuf[i]);
+//            }
+//            printf("\n");
+//        } else {
+//            printf("inputBuf is NULL\n");
+//        }
+
+//        bufIdx = AMediaCodec_queueInputBuffer(fcodec, bufIdx, 0, frameSize, 0, 0);
+//        if (bufIdx == -2) {
+//            printf("AMediaCodec bufIdx format changed\n");
+//        } else if (bufIdx == -1) {
+//            printf("AMediaCodec input try later\n");
+//        } else {
+//            printf("AMediaCodec bufIdx index\n", bufIdx);
+//        }
+//    }
 
 //    // 查找 fmtp 行
 //    std::string sdpLines(fSubsession.savedSDPLines());

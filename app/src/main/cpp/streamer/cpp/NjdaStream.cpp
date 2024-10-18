@@ -6,6 +6,7 @@
 
 #include <thread>
 #include <iostream>
+#include <fstream>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -51,15 +52,13 @@ void decodeH264ThreadFunction() {
     while (true) {
         AMediaCodecBufferInfo info;
         ssize_t outIdx = AMediaCodec_dequeueOutputBuffer(codec, &info, 2000);  // 等待2秒
+        LOGI("result decodeH264ThreadFunction, size: %d",outIdx);
         if (outIdx >= 0) {
             uint8_t* outputBuf = AMediaCodec_getOutputBuffer(codec, outIdx, nullptr);
-            if (outputBuf) {
-                LOGI("Decoded frame, size: %d", info.size);
-            }
             // 释放输出缓冲区
             AMediaCodec_releaseOutputBuffer(codec, outIdx, false);
         } else if (outIdx == -1) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
             LOGI("decodeH264ThreadFunction out of buffer, size: %d",outIdx);
         }
     }
@@ -242,6 +241,8 @@ void printHex(uint8_t* data, size_t length) {
     printf("\n");
 }
 
+const std::string filename = "/sdcard/header.264";
+
 void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultString) {
     do {
         UsageEnvironment &env = rtspClient->envir(); // alias
@@ -285,36 +286,75 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
             //结论是相同的
 
 //            std::string original = "Z/QAKpGWgHgCJ+JwEQAAAwABAAADAHiPGDKg,aM4PGSA=";
-//            std::string sps_base64 = "Z/QAKpGWgHgCJ+JwEQAAAwABAAADAHiPGDKg";
-//            std::string pps_base64 = "aM4PGSA=";
-//
-            std::vector<uint8_t> originalChar = stpStringBase64Decode(spsPPs);
+            std::string sps_base64 = "Z/QAH5GWgFAFuwEQAAADABAAAAMDyPGDKg==";
+            std::string pps_base64 = "aM4PGSA=";
 
-            LOGI("originalChar size %d", originalChar.size());
-
-            ssize_t bufIdx = AMediaCodec_dequeueInputBuffer(codec, 0);
-
-            LOGI("bufIdx %d", bufIdx);
-
-            if (bufIdx >= 0) {
-                size_t bufSize;
-                uint8_t* inputBuf = AMediaCodec_getInputBuffer(codec, bufIdx, &bufSize);
-                memcpy(inputBuf, originalChar.data(), originalChar.size());
-                printHex(inputBuf, originalChar.size());
-                LOGI("AMediaCodec bufIdx format changed", inputBuf);
-                AMediaCodec_queueInputBuffer(codec, bufIdx, 0, originalChar.size(), 0, -2);
-            } else if (bufIdx == -2) {
-                LOGI("AMediaCodec bufIdx format changed");
-            } else if (bufIdx == -1) {
-                LOGI("AMediaCodec input try later");
-            }
-//            std::vector<uint8_t> sps_base64Char = stpStringBase64Decode(sps_base64);
-//            std::vector<uint8_t> pps_base64Char = stpStringBase64Decode(pps_base64);
+            std::vector<uint8_t> sps_base64Char = stpStringBase64Decode(sps_base64);
+            std::vector<uint8_t> pps_base64Char = stpStringBase64Decode(pps_base64);
 //
 //            // 将两个 char 数组拼接
-//            std::vector<unsigned char> combined;
-//            combined.insert(combined.end(), sps_base64Char.begin(), sps_base64Char.end());
-//            combined.insert(combined.end(), pps_base64Char.begin(), pps_base64Char.end());
+            std::vector<unsigned char> combined;
+
+            std::vector<unsigned char> spsPrefix = {
+                    0x00, 0x00, 0x00, 0x01
+            };
+
+            std::vector<unsigned char> ppsPrefix = {
+                    0x00, 0x00, 0x00, 0x01
+            };
+
+            combined.insert(combined.end(), spsPrefix.begin(), spsPrefix.end());
+            combined.insert(combined.end(), sps_base64Char.begin(), sps_base64Char.end());
+            combined.insert(combined.end(), ppsPrefix.begin(), ppsPrefix.end());
+            combined.insert(combined.end(), pps_base64Char.begin(), pps_base64Char.end());
+//
+            //std::vector<uint8_t> originalChar = stpStringBase64Decode(spsPPs);
+
+            LOGI("originalChar size %d", combined.size());
+
+            // 使用范围 for 循环打印每个元素
+            for (unsigned char byte : combined) {
+                // 打印为十六进制格式
+                std::cout << "0x" << std::hex << static_cast<int>(byte) << " ";
+            }
+
+            // 打开文件进行二进制写入
+            std::ofstream outputFile(filename, std::ios::binary);
+
+            // 检查文件是否成功打开
+            if (!outputFile) {
+               LOGI("Error: Could not open the file for writing.");
+            }
+
+            // 写入 vector 的数据到文件
+            outputFile.write(reinterpret_cast<const char*>(combined.data()), combined.size());
+
+            // 检查写入是否成功
+            if (!outputFile) {
+                LOGI("Error: Could not write data to the file.");
+            }
+
+            // 关闭文件
+            outputFile.close();
+
+//            ssize_t bufIdx = AMediaCodec_dequeueInputBuffer(codec, 0);
+//
+//            LOGI("bufIdx %d\n", bufIdx);
+//
+//            if (bufIdx >= 0) {
+//                size_t bufSize;
+//                uint8_t* inputBuf = AMediaCodec_getInputBuffer(codec, bufIdx, &bufSize);
+//                memcpy(inputBuf, combined.data(), combined.size());
+//                bufIdx = AMediaCodec_queueInputBuffer(codec, bufIdx, 0, combined.size(), 0, 2);
+//                if (bufIdx == -2) {
+//                    LOGI("AMediaCodec bufIdx format changed\n");
+//                    break;
+//                } else if (bufIdx == -1) {
+//                    LOGI("AMediaCodec input try later");
+//                } else {
+//                    LOGI("AMediaCodec_queueInputBuffer %d\n", bufIdx);
+//                }
+//            }
 
 //            // 比较两个结果是否相等
 //            if (combined.size() == originalChar.size() && memcmp(combined.data(), originalChar.data(), combined.size()) == 0) {
