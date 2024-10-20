@@ -73,7 +73,7 @@ void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes
 //    uint8_t nalHeader4 = fReceiveBuffer[3]; // 第一个字节是 NALU 头
 
     // 打印 NALU 头信息
-    printf("NALU Header: 0x%02X\n", nalHeader);
+    //printf("NALU Header: 0x%02X\n", nalHeader);
 //    printf("sdp decription: %s\n", fSubsession.savedSDPLines());
 
 
@@ -130,7 +130,16 @@ void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes
 
     zmq_msg_init_data(&message2, fReceiveBuffer, frameSize, nullptr, nullptr);
     // 发送消息
-    zmq_msg_send(&message2, socket, 0);
+    int bytes_sent = zmq_msg_send(&message2, socket, 0);
+
+    if (bytes_sent == -1) {
+        // 发送失败，处理错误
+        int errnum = zmq_errno();
+        printf("Error sending message: %s\n", zmq_strerror(errnum));
+    } else {
+        // 发送成功，bytes_sent 包含发送的字节数
+        printf("Sent %d bytes\n", bytes_sent);
+    }
     // 清理
     zmq_msg_close(&message2);
 
