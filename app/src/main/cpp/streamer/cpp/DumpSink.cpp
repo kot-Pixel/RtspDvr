@@ -1,26 +1,30 @@
 #include "../include/DummySink.h"
 #include "../include/sdpUtils.h"
+#include "zmq.h"
 #include <fstream>
 
 #define DUMMY_SINK_RECEIVE_BUFFER_SIZE 100000
 
 const u_int8_t naulHeader[] = {
-        0x0,0x0,0x0,0x1
+        0x0, 0x0, 0x0, 0x1
 };
 
 //
 // Created by Tom on 2024/10/11.
 //
-DummySink* DummySink::createNew(UsageEnvironment& env, MediaSubsession& subsession, char const* streamId, int socket, AMediaCodec* codec) {
-    return new DummySink(env, subsession, streamId, socket, codec);
+DummySink *
+DummySink::createNew(UsageEnvironment &env, MediaSubsession &subsession, char const *streamId,
+                     void *responder, AMediaCodec *codec) {
+    return new DummySink(env, subsession, streamId, responder, codec);
 }
 
-DummySink::DummySink(UsageEnvironment& env, MediaSubsession& subsession, char const* streamId, int socket, AMediaCodec* codec)
+DummySink::DummySink(UsageEnvironment &env, MediaSubsession &subsession, char const *streamId,
+                     void *responder, AMediaCodec *codec)
         : MediaSink(env),
           fSubsession(subsession) {
     fStreamId = strDup(streamId);
+    socket = responder;
     fReceiveBuffer = new u_int8_t[DUMMY_SINK_RECEIVE_BUFFER_SIZE];
-    fSocketId = socket;
     fcodec = codec;
 }
 
@@ -29,34 +33,38 @@ DummySink::~DummySink() {
     delete[] fStreamId;
 }
 
-void DummySink::afterGettingFrame(void* clientData, unsigned frameSize, unsigned numTruncatedBytes,
-                                  struct timeval presentationTime, unsigned durationInMicroseconds) {
-    DummySink* sink = (DummySink*)clientData;
+void DummySink::afterGettingFrame(void *clientData, unsigned frameSize, unsigned numTruncatedBytes,
+                                  struct timeval presentationTime,
+                                  unsigned durationInMicroseconds) {
+    DummySink *sink = (DummySink *) clientData;
     sink->afterGettingFrame(frameSize, numTruncatedBytes, presentationTime, durationInMicroseconds);
 }
 
 // If you don't want to see debugging output for each received frame, then comment out the following line:
 #define DEBUG_PRINT_EACH_RECEIVED_FRAME 1
 
+zmq_msg_t message2;
+
 void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes,
-                                  struct timeval presentationTime, unsigned /*durationInMicroseconds*/) {
+                                  struct timeval presentationTime,
+                                  unsigned /*durationInMicroseconds*/) {
     //printf("afterGettingFrame invoke %d - %d", fSocketId, frameSize);
     if (frameSize < 2) return; // 确保有足够的数据
 
-    std::ofstream outputFile(filename, std::ios::binary | std::ios::app);
-    if (!outputFile) {
-        std::cerr << "Error: Could not open the file for writing." << std::endl;
-    }
-
-
-    // 写入 vector 的数据到文件
-    outputFile.write(reinterpret_cast<const char*>(naulHeader), 4);
-    outputFile.write(reinterpret_cast<const char*>(fReceiveBuffer), frameSize);
-    if (!outputFile) {
-        std::cerr << "Error: Could not write data to the file." << std::endl;
-    }
-
-    outputFile.close();
+//    std::ofstream outputFile(filename, std::ios::binary | std::ios::app);
+//    if (!outputFile) {
+//        std::cerr << "Error: Could not open the file for writing." << std::endl;
+//    }
+//
+//
+//    // 写入 vector 的数据到文件
+//    outputFile.write(reinterpret_cast<const char*>(naulHeader), 4);
+//    outputFile.write(reinterpret_cast<const char*>(fReceiveBuffer), frameSize);
+//    if (!outputFile) {
+//        std::cerr << "Error: Could not write data to the file." << std::endl;
+//    }
+//
+//    outputFile.close();
 
     // 确保 fReceiveBuffer 包含完整的 NALU
     uint8_t nalHeader = fReceiveBuffer[0]; // 第一个字节是 NALU 头
@@ -119,34 +127,12 @@ void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes
 //    std::vector<unsigned char> sps = stpStringBase64Decode(sps_base64);
 //    std::vector<unsigned char> pps = stpStringBase64Decode(pps_base64);
 //
-//    ssize_t bytes_sent_sps = send(fSocketId, sps.data(), sps.size(), 0);
 
-//    if (nalUnitType == 7) {
-//        // SPS
-//        printf("Received SPS NAL Unit\n");
-//        printf("NALU Header: 0x%02X\n", nalHeader);
-//        if (spsReceived == 0) {
-//            spsReceived = 1;
-////            memcpy(spsReceiveBuffer, fReceiveBuffer, frameSize);
-//        }
-//    } else if (nalUnitType == 8) {
-//        // PPS
-//        printf("Received PPS NAL Unit\n");
-//        printf("NALU Header: 0x%02X\n", nalHeader);
-//        if (ppsReceived == 0) {
-//            ppsReceived = 1;
-////            memcpy(ppsReceiveBuffer, fReceiveBuffer, frameSize);
-//        }
-//    } else {
-//        // 其他 NAL 单元
-//        //printf("Received NAL Unit Type: %d\n", nalUnitType);
-//    }
-//
-//    if (spsReceived && ppsReceived) {
-//        //printf("sps and pps buffer has create, now send client sps and pps buffer data");
-//    } else {
-//        //do noting.......
-//    }
+    zmq_msg_init_data(&message2, fReceiveBuffer, frameSize, nullptr, nullptr);
+    // 发送消息
+    zmq_msg_send(&message2, socket, 0);
+    // 清理
+    zmq_msg_close(&message2);
 
     continuePlaying();
 }

@@ -36,6 +36,17 @@ set(LIVE555_GROUP_SOCK_LIB ${CMAKE_SOURCE_DIR}/live555/lib/libgroupsock.a)
 set(LIVE555_LIVE_MEDIA_LIB ${CMAKE_SOURCE_DIR}/live555/lib/libliveMedia.a)
 set(LIVE555_USAGE_ENVIRONMENT_LIB ${CMAKE_SOURCE_DIR}/live555/lib/libUsageEnvironment.a)
 
+
+# OPEN SSL 的相关编译路径
+set(zeroMq_ROOT_DIR ${CMAKE_SOURCE_DIR}/zeroMq)
+set(zeroMq_INCLUDE_DIR ${zeroMq_ROOT_DIR}/include)
+
+set(zeroMq_ZMQ_LIB ${zeroMq_ROOT_DIR}/lib/libzmq.a)
+
+# 包含 OpenSSL 的头文件
+include_directories(${zeroMq_INCLUDE_DIR})
+
+
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
@@ -75,4 +86,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         #openSSL lib
         ${OPENSSL_CRYPTO_LIB}
         ${OPENSSL_SSL_LIB}
+
+        ${zeroMq_ZMQ_LIB}
         log)

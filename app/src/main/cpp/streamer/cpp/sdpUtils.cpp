@@ -5,15 +5,21 @@
 #include "../include/sdpUtils.h"
 
 
-// 分割字符串函数
-std::string removeDelimiter(const std::string& s, char delimiter) {
-    std::string result;
-    for (char c : s) {
-        if (c != delimiter) {
-            result += c;
-        }
+std::pair<std::string, std::string> subByDelimiter(const std::string& s, char delimiter) {
+    // 找到分隔符的位置
+    size_t pos = s.find(delimiter);
+
+    // 如果找不到分隔符，返回整个字符串作为第一部分，第二部分为空
+    if (pos == std::string::npos) {
+        return {s, ""};
     }
-    return result;
+
+    // 分割字符串：前面的部分和后面的部分
+    std::string beforeDelimiter = s.substr(0, pos);
+    std::string afterDelimiter = s.substr(pos + 1);
+
+    // 返回结果
+    return {beforeDelimiter, afterDelimiter};
 }
 
 std::string extractSpropParameterSets(const std::string& fmtpLine) {

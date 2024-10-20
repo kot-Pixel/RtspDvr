@@ -21,6 +21,7 @@ public:
     TaskToken streamTimerTask;
 
     int socketId = -1;
+    void* responder;
     double duration;
 };
 

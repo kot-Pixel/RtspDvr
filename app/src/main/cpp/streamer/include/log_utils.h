@@ -40,7 +40,7 @@ void streamTimerHandler(void* clientData);
 // called at the end of a stream's expected duration (if the stream has not already signaled its end using a RTCP "BYE")
 
 // The main streaming routine (for each "rtsp://" URL):
-void openURL(UsageEnvironment& env, char const* progName, char const* rtspURL, int sockectId);
+void openURL(UsageEnvironment& env, char const* progName, char const* rtspURL,void* responde);
 
 // Used to iterate through each stream's 'subsessions', setting up each one:
 void setupNextSubsession(RTSPClient* rtspClient);

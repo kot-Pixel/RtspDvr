@@ -2,6 +2,7 @@
 #include "../include/DummySink.h"
 #include "../include/log_utils.h"
 #include "../include/sdpUtils.h"
+#include <../../zeroMq/include/zmq.h>
 #include "../../live555/include/BasicUsageEnvironment/BasicUsageEnvironment.hh"
 
 #include <thread>
@@ -66,13 +67,13 @@ void decodeH264ThreadFunction() {
 
 int main() {
 
-    int result = configureAndStartMediaCodec();
-
-    LOGI("success configure and start mediacodec");
-
-    std::thread decodeH264Thread(decodeH264ThreadFunction);
-
-    decodeH264Thread.detach();
+//    int result = configureAndStartMediaCodec();
+//
+//    LOGI("success configure and start mediacodec");
+//
+//    std::thread decodeH264Thread(decodeH264ThreadFunction);
+//
+//    decodeH264Thread.detach();
 
 //    int server_fd, client_id;
 //    server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -106,11 +107,25 @@ int main() {
 //    }
 //    LOGI("Waiting for client connection...");
 
+    // 创建 ZMQ 上下文
+    void* context = zmq_ctx_new();
+
+    // 创建 ZMQ 套接字 (ZMQ_REP 用于响应请求)
+    void* responder = zmq_socket(context, ZMQ_PUSH);
+
+    // 绑定到 Unix Domain Socket 地址
+    int rc = zmq_bind(responder, "ipc:///sdcard/zmq.sock");
+
+    if (rc != 0) {
+        LOGE("Error binding to socket:");
+        return -1;
+    }
+
     // Begin by setting up our usage environment:
     TaskScheduler *scheduler = BasicTaskScheduler::createNew();
     UsageEnvironment *env = BasicUsageEnvironment::createNew(*scheduler);
 //
-//    // 接受客户端连接
+    // 接受客户端连接
 //    if ((client_id = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
 //        perror("Accept failed");
 //        close(server_fd);
@@ -119,14 +134,14 @@ int main() {
 
 //    LOGI("success accept a socket.... %d", client_id);
 
-    openURL(*env, "xxxx", "rtsp://192.168.10.123:8554/mystream", 1);
+    openURL(*env, "xxxx", "rtsp://192.168.2.104:8554/cam", responder);
 
     env->taskScheduler().doEventLoop(&eventLoopWatchVariable);
     return 0;
 }
 
 
-void openURL(UsageEnvironment &env, char const *progName, char const *rtspURL, int socketId) {
+void openURL(UsageEnvironment &env, char const *progName, char const *rtspURL, void* responder) {
     LOGI("openURL invoke");
     // Begin by creating a "RTSPClient" object.  Note that there is a separate "RTSPClient" object for each stream that we wish
     // to receive (even if more than stream uses the same "rtsp://" URL).
@@ -134,7 +149,7 @@ void openURL(UsageEnvironment &env, char const *progName, char const *rtspURL, i
                                                      progName);
     KtStreamClientState &scs = ((KtRtspClient *) rtspClient)->scs; // alias
 
-    scs.socketId = socketId;
+    scs.responder = responder;
 
     if (rtspClient == NULL) {
         LOGE("Failed to create a RTSP client for URL %s", env.getResultMsg());
@@ -242,6 +257,8 @@ void printHex(uint8_t* data, size_t length) {
 }
 
 const std::string filename = "/sdcard/header.264";
+zmq_msg_t message;
+
 
 void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultString) {
     do {
@@ -278,19 +295,18 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
 
         if (!fmtpLine.empty()) {
             std::string xx = extractSpropParameterSets(fmtpLine);
-            std::string spsPPs = removeDelimiter(xx, ',');
+            std::pair<std::string, std::string> spsPPs = subByDelimiter(xx, ',');
 
-            LOGI("fmtp Line info is %s", xx.c_str());
-            LOGI("fmtp Line info is %s", spsPPs.c_str());
+            LOGI("fmtp Line info is111 %s", xx.c_str());
+            LOGI("fmtp Line info is222 %s", spsPPs.first.c_str());
+            LOGI("fmtp Line info is3333 %s", spsPPs.second.c_str());
 
             //结论是相同的
 
 //            std::string original = "Z/QAKpGWgHgCJ+JwEQAAAwABAAADAHiPGDKg,aM4PGSA=";
-            std::string sps_base64 = "Z/QAH5GWgFAFuwEQAAADABAAAAMDyPGDKg==";
-            std::string pps_base64 = "aM4PGSA=";
 
-            std::vector<uint8_t> sps_base64Char = stpStringBase64Decode(sps_base64);
-            std::vector<uint8_t> pps_base64Char = stpStringBase64Decode(pps_base64);
+            std::vector<uint8_t> sps_base64Char = stpStringBase64Decode(spsPPs.first);
+            std::vector<uint8_t> pps_base64Char = stpStringBase64Decode(spsPPs.second);
 //
 //            // 将两个 char 数组拼接
             std::vector<unsigned char> combined;
@@ -303,39 +319,46 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
                     0x00, 0x00, 0x00, 0x01
             };
 
-            combined.insert(combined.end(), spsPrefix.begin(), spsPrefix.end());
             combined.insert(combined.end(), sps_base64Char.begin(), sps_base64Char.end());
             combined.insert(combined.end(), ppsPrefix.begin(), ppsPrefix.end());
             combined.insert(combined.end(), pps_base64Char.begin(), pps_base64Char.end());
+
+            zmq_msg_init_data(&message, combined.data(), combined.size(), nullptr, nullptr);
+            // 发送消息
+            zmq_msg_send(&message, scs.responder, 0);
+            // 清理
+            zmq_msg_close(&message);
+
+//            send(scs.socketId, combined.data(), combined.size(), 0);
 //
             //std::vector<uint8_t> originalChar = stpStringBase64Decode(spsPPs);
 
             LOGI("originalChar size %d", combined.size());
 
-            // 使用范围 for 循环打印每个元素
-            for (unsigned char byte : combined) {
-                // 打印为十六进制格式
-                std::cout << "0x" << std::hex << static_cast<int>(byte) << " ";
-            }
-
-            // 打开文件进行二进制写入
-            std::ofstream outputFile(filename, std::ios::binary);
-
-            // 检查文件是否成功打开
-            if (!outputFile) {
-               LOGI("Error: Could not open the file for writing.");
-            }
-
-            // 写入 vector 的数据到文件
-            outputFile.write(reinterpret_cast<const char*>(combined.data()), combined.size());
-
-            // 检查写入是否成功
-            if (!outputFile) {
-                LOGI("Error: Could not write data to the file.");
-            }
-
-            // 关闭文件
-            outputFile.close();
+//            // 使用范围 for 循环打印每个元素
+//            for (unsigned char byte : combined) {
+//                // 打印为十六进制格式
+//                std::cout << "0x" << std::hex << static_cast<int>(byte) << " ";
+//            }
+//
+//            // 打开文件进行二进制写入
+//            std::ofstream outputFile(filename, std::ios::binary);
+//
+//            // 检查文件是否成功打开
+//            if (!outputFile) {
+//               LOGI("Error: Could not open the file for writing.");
+//            }
+//
+//            // 写入 vector 的数据到文件
+//            outputFile.write(reinterpret_cast<const char*>(combined.data()), combined.size());
+//
+//            // 检查写入是否成功
+//            if (!outputFile) {
+//                LOGI("Error: Could not write data to the file.");
+//            }
+//
+//            // 关闭文件
+//            outputFile.close();
 
 //            ssize_t bufIdx = AMediaCodec_dequeueInputBuffer(codec, 0);
 //
@@ -373,7 +396,7 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
         }
 
 
-        scs.subsession->sink = DummySink::createNew(env, *scs.subsession, rtspClient->url(), scs.socketId, codec);
+        scs.subsession->sink = DummySink::createNew(env, *scs.subsession, rtspClient->url(), scs.responder, codec);
         // perhaps use your own custom "MediaSink" subclass instead
         if (scs.subsession->sink == NULL) {
             env << *rtspClient << "Failed to create a data sink for the \"" << *scs.subsession

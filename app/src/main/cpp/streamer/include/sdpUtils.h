@@ -11,7 +11,7 @@
 #include "openssl/evp.h"
 
 std::vector<uint8_t> stpStringBase64Decode(const std::string& encoded);
-std::string removeDelimiter(const std::string& s, char delimiter);
+std::pair<std::string, std::string> subByDelimiter(const std::string& s, char delimiter);
 std::string extractSpropParameterSets(const std::string& fmtpLine);
 
 #endif //SOCKECTDEMO2_SDPUTILS_H
