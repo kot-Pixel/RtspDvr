@@ -116,6 +116,9 @@ int main() {
     // 绑定到 Unix Domain Socket 地址
     int rc = zmq_bind(responder, "ipc:///sdcard/zmq.sock");
 
+//    int timeout = 1; // 超时设置为 16 毫秒
+//    zmq_setsockopt(responder, ZMQ_SNDTIMEO, &timeout, sizeof(timeout));
+
     if (rc != 0) {
         LOGE("Error binding to socket:");
         return -1;
@@ -328,6 +331,9 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
             zmq_msg_send(&message, scs.responder, 0);
             // 清理
             zmq_msg_close(&message);
+
+            int  timeout = 0;
+            zmq_setsockopt(scs.responder, ZMQ_SNDTIMEO, &timeout, sizeof(timeout));
 
 //            send(scs.socketId, combined.data(), combined.size(), 0);
 //
