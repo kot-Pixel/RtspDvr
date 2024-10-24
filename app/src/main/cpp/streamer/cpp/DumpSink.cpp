@@ -1,7 +1,6 @@
 #include "../include/DummySink.h"
 #include "../include/sdpUtils.h"
 #include "zmq.h"
-#include "../include/log_utils.h"
 #include <fstream>
 
 #define DUMMY_SINK_RECEIVE_BUFFER_SIZE 100000
