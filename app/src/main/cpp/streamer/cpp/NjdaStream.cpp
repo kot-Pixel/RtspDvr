@@ -113,6 +113,12 @@ int main() {
     // 创建 ZMQ 套接字 (ZMQ_REP 用于响应请求)
     void* responder = zmq_socket(context, ZMQ_PUSH);
 
+    // 设置发送缓冲区的最大值为 1000
+    int sndhwm_max = 100;
+    zmq_setsockopt(responder, ZMQ_SNDHWM, &sndhwm_max, sizeof(sndhwm_max));
+    zmq_setsockopt(responder, ZMQ_SNDHWM, &sndhwm_max, sizeof(sndhwm_max));
+
+
     // 绑定到 Unix Domain Socket 地址
     int rc = zmq_bind(responder, "ipc:///sdcard/zmq.sock");
 
@@ -137,7 +143,7 @@ int main() {
 
 //    LOGI("success accept a socket.... %d", client_id);
 
-    openURL(*env, "xxxx", "rtsp://192.168.2.104:8554/cam", responder);
+    openURL(*env, "xxxx", "rtsp://192.168.2.103:8554/cam", responder);
 
     env->taskScheduler().doEventLoop(&eventLoopWatchVariable);
     return 0;

@@ -133,9 +133,15 @@ void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes
     int bytes_sent = zmq_msg_send(&message2, socket, ZMQ_DONTWAIT);
 
     // 查询当前接收缓冲区大小
-    int rcv_buffer_size;
-    size_t rcv_buffer_size_len = sizeof(rcv_buffer_size);
-    std::cout << "Receive buffer size: " << rcv_buffer_size << std::endl;
+    int sndhwm;
+    size_t sndhwm_size = sizeof(sndhwm);
+    zmq_getsockopt(socket, ZMQ_SNDHWM, &sndhwm, &sndhwm_size);
+    std::cout << "Send buffer size: " << sndhwm_size << std::endl;
+
+    int sndhwm2;
+    size_t sndhwm_size2 = sizeof(sndhwm);
+    zmq_getsockopt(socket, ZMQ_RCVHWM, &sndhwm2, &sndhwm_size2);
+    std::cout << "Receive buffer size: " << sndhwm_size << std::endl;
 
     if (bytes_sent == -1) {
         // 发送失败，处理错误
