@@ -327,13 +327,10 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
             combined.insert(combined.end(), pps_base64Char.begin(), pps_base64Char.end());
 
             zmq_msg_init_data(&message, combined.data(), combined.size(), nullptr, nullptr);
-            // 发送消息
+            // 发送消息, 发送sps/pps的时候是阻塞的。
             zmq_msg_send(&message, scs.responder, 0);
             // 清理
             zmq_msg_close(&message);
-
-            int  timeout = 0;
-            zmq_setsockopt(scs.responder, ZMQ_SNDTIMEO, &timeout, sizeof(timeout));
 
 //            send(scs.socketId, combined.data(), combined.size(), 0);
 //

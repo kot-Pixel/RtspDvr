@@ -1,6 +1,7 @@
 #include "../include/DummySink.h"
 #include "../include/sdpUtils.h"
 #include "zmq.h"
+#include "../include/log_utils.h"
 #include <fstream>
 
 #define DUMMY_SINK_RECEIVE_BUFFER_SIZE 100000
@@ -129,8 +130,13 @@ void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes
 //
 
     zmq_msg_init_data(&message2, fReceiveBuffer, frameSize, nullptr, nullptr);
-    // 发送消息
-    int bytes_sent = zmq_msg_send(&message2, socket, 0);
+    // 发送消息,非阻塞信息发送。
+    int bytes_sent = zmq_msg_send(&message2, socket, ZMQ_DONTWAIT);
+
+    // 查询当前接收缓冲区大小
+    int rcv_buffer_size;
+    size_t rcv_buffer_size_len = sizeof(rcv_buffer_size);
+    std::cout << "Receive buffer size: " << rcv_buffer_size << std::endl;
 
     if (bytes_sent == -1) {
         // 发送失败，处理错误
