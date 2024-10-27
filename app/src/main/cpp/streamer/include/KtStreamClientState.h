@@ -8,6 +8,7 @@
 
 #include "../../live555/include/liveMedia/MediaSession.hh"
 #include "../../live555/include/UsageEnvironment/UsageEnvironment.hh"
+#include <fstream>
 
 class KtStreamClientState {
 public:

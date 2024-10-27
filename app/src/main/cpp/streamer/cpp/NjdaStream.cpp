@@ -143,7 +143,7 @@ int main() {
 
 //    LOGI("success accept a socket.... %d", client_id);
 
-    openURL(*env, "xxxx", "rtsp://192.168.2.103:8554/cam", responder);
+    openURL(*env, "xxxx", "rtsp://192.168.2.104:8554/cam", responder);
 
     env->taskScheduler().doEventLoop(&eventLoopWatchVariable);
     return 0;
@@ -265,7 +265,7 @@ void printHex(uint8_t* data, size_t length) {
     printf("\n");
 }
 
-const std::string filename = "/sdcard/header.264";
+const std::string filename = "/data/user/0/com.example.ktrtspplayer/cache/send.264";
 zmq_msg_t message;
 
 
@@ -332,11 +332,32 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
             combined.insert(combined.end(), ppsPrefix.begin(), ppsPrefix.end());
             combined.insert(combined.end(), pps_base64Char.begin(), pps_base64Char.end());
 
-            zmq_msg_init_data(&message, combined.data(), combined.size(), nullptr, nullptr);
-            // 发送消息, 发送sps/pps的时候是阻塞的。
-            zmq_msg_send(&message, scs.responder, 0);
-            // 清理
-            zmq_msg_close(&message);
+            // 打开文件进行二进制写入
+            std::ofstream outputFile(filename, std::ios::binary);
+
+            // 检查文件是否成功打开
+            if (!outputFile) {
+                LOGI("Error: Could not open the file for writing.");
+            }
+
+            // 写入 vector 的数据到文件
+            outputFile.write(reinterpret_cast<const char*>(ppsPrefix.data()), 4);
+            outputFile.write(reinterpret_cast<const char*>(combined.data()), combined.size());
+
+            // 检查写入是否成功
+            if (!outputFile) {
+                LOGI("Error: Could not write data to the file.");
+            }
+
+//            // 关闭文件
+            outputFile.close();
+
+//
+//            zmq_msg_init_data(&message, combined.data(), combined.size(), nullptr, nullptr);
+//            // 发送消息, 发送sps/pps的时候是阻塞的。
+//            zmq_msg_send(&message, scs.responder, 0);
+//            // 清理
+//            zmq_msg_close(&message);
 
 //            send(scs.socketId, combined.data(), combined.size(), 0);
 //
@@ -350,25 +371,6 @@ void continueAfterSETUP(RTSPClient *rtspClient, int resultCode, char *resultStri
 //                std::cout << "0x" << std::hex << static_cast<int>(byte) << " ";
 //            }
 //
-//            // 打开文件进行二进制写入
-//            std::ofstream outputFile(filename, std::ios::binary);
-//
-//            // 检查文件是否成功打开
-//            if (!outputFile) {
-//               LOGI("Error: Could not open the file for writing.");
-//            }
-//
-//            // 写入 vector 的数据到文件
-//            outputFile.write(reinterpret_cast<const char*>(combined.data()), combined.size());
-//
-//            // 检查写入是否成功
-//            if (!outputFile) {
-//                LOGI("Error: Could not write data to the file.");
-//            }
-//
-//            // 关闭文件
-//            outputFile.close();
-
 //            ssize_t bufIdx = AMediaCodec_dequeueInputBuffer(codec, 0);
 //
 //            LOGI("bufIdx %d\n", bufIdx);

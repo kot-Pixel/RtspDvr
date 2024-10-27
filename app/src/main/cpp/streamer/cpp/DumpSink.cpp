@@ -3,7 +3,7 @@
 #include "zmq.h"
 #include <fstream>
 
-#define DUMMY_SINK_RECEIVE_BUFFER_SIZE 100000
+#define DUMMY_SINK_RECEIVE_BUFFER_SIZE 500000000
 
 const u_int8_t naulHeader[] = {
         0x0, 0x0, 0x0, 0x1
@@ -33,6 +33,8 @@ DummySink::~DummySink() {
     delete[] fStreamId;
 }
 
+bool hasSendI = false;
+
 void DummySink::afterGettingFrame(void *clientData, unsigned frameSize, unsigned numTruncatedBytes,
                                   struct timeval presentationTime,
                                   unsigned durationInMicroseconds) {
@@ -51,29 +53,44 @@ void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes
     //printf("afterGettingFrame invoke %d - %d", fSocketId, frameSize);
     if (frameSize < 2) return; // 确保有足够的数据
 
-//    std::ofstream outputFile(filename, std::ios::binary | std::ios::app);
-//    if (!outputFile) {
-//        std::cerr << "Error: Could not open the file for writing." << std::endl;
-//    }
-//
-//
-//    // 写入 vector 的数据到文件
-//    outputFile.write(reinterpret_cast<const char*>(naulHeader), 4);
-//    outputFile.write(reinterpret_cast<const char*>(fReceiveBuffer), frameSize);
-//    if (!outputFile) {
-//        std::cerr << "Error: Could not write data to the file." << std::endl;
-//    }
-//
-//    outputFile.close();
+    std::ofstream outputFile(filename, std::ios::binary | std::ios::app);
+    if (!outputFile) {
+        std::cerr << "Error: Could not open the file for writing." << std::endl;
+    }
+
+
+    // 写入 vector 的数据到文件
+    outputFile.write(reinterpret_cast<const char*>(naulHeader), 4);
+    outputFile.write(reinterpret_cast<const char*>(fReceiveBuffer), frameSize);
+    if (!outputFile) {
+        std::cerr << "Error: Could not write data to the file." << std::endl;
+    }
+
+    outputFile.close();
 
     // 确保 fReceiveBuffer 包含完整的 NALU
-    uint8_t nalHeader = fReceiveBuffer[0]; // 第一个字节是 NALU 头
+    uint8_t nalHeader = fReceiveBuffer[0] & 0x1F; // 第一个字节是 NALU 头
+
+    if (nalHeader == 0x01) {
+        // P 帧
+        //printf("is P frame");
+    } else if (nalHeader == 0x05) {
+        // IDR 帧
+        // 打印 NALU 头信息
+        printf("is IDR frame");
+    } else if (nalHeader == 0x07) {
+        // SPS
+    } else if (nalHeader == 0x08) {
+        // PPS
+    } else if (nalHeader == 0x02) {
+        // B 帧
+        printf("is B frame");
+    }
 //    uint8_t nalHeader2 = fReceiveBuffer[1]; // 第一个字节是 NALU 头
 //    uint8_t nalHeader3 = fReceiveBuffer[2]; // 第一个字节是 NALU 头
 //    uint8_t nalHeader4 = fReceiveBuffer[3]; // 第一个字节是 NALU 头
 
-    // 打印 NALU 头信息
-    //printf("NALU Header: 0x%02X\n", nalHeader);
+
 //    printf("sdp decription: %s\n", fSubsession.savedSDPLines());
 
 
@@ -128,31 +145,63 @@ void DummySink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes
 //    std::vector<unsigned char> pps = stpStringBase64Decode(pps_base64);
 //
 
-    zmq_msg_init_data(&message2, fReceiveBuffer, frameSize, nullptr, nullptr);
-    // 发送消息,非阻塞信息发送。
-    int bytes_sent = zmq_msg_send(&message2, socket, ZMQ_DONTWAIT);
+//    if (nalHeader != 0x05) {
+//        if (hasSendI) {
+//            zmq_msg_init_data(&message2, fReceiveBuffer, frameSize, nullptr, nullptr);
+//            // 发送消息,非阻塞信息发送。
+//            int bytes_sent = zmq_msg_send(&message2, socket, ZMQ_DONTWAIT);
+//
+//            // 查询当前接收缓冲区大小
+//            int sndhwm;
+//            size_t sndhwm_size = sizeof(sndhwm);
+//            zmq_getsockopt(socket, ZMQ_SNDHWM, &sndhwm, &sndhwm_size);
+//            std::cout << "Send buffer size: " << sndhwm_size << std::endl;
+//
+//            int sndhwm2;
+//            size_t sndhwm_size2 = sizeof(sndhwm);
+//            zmq_getsockopt(socket, ZMQ_RCVHWM, &sndhwm2, &sndhwm_size2);
+//            std::cout << "Receive buffer size: " << sndhwm_size << std::endl;
+//
+//            if (bytes_sent == -1) {
+//                // 发送失败，处理错误
+//                int errnum = zmq_errno();
+//                printf("Error sending message: %s\n", zmq_strerror(errnum));
+//            } else {
+//                // 发送成功，bytes_sent 包含发送的字节数
+//                printf("Sent %d bytes\n", bytes_sent);
+//            }
+//            // 清理
+//            zmq_msg_close(&message2);
+//        }
+//    } else {
+//        zmq_msg_init_data(&message2, fReceiveBuffer, frameSize, nullptr, nullptr);
+//        // 发送消息,非阻塞信息发送。
+//        int bytes_sent = zmq_msg_send(&message2, socket, ZMQ_DONTWAIT);
+//
+//        // 查询当前接收缓冲区大小
+//        int sndhwm;
+//        size_t sndhwm_size = sizeof(sndhwm);
+//        zmq_getsockopt(socket, ZMQ_SNDHWM, &sndhwm, &sndhwm_size);
+//        std::cout << "Send buffer size: " << sndhwm_size << std::endl;
+//
+//        int sndhwm2;
+//        size_t sndhwm_size2 = sizeof(sndhwm);
+//        zmq_getsockopt(socket, ZMQ_RCVHWM, &sndhwm2, &sndhwm_size2);
+//        std::cout << "Receive buffer size: " << sndhwm_size << std::endl;
+//
+//        if (bytes_sent == -1) {
+//            // 发送失败，处理错误
+//            int errnum = zmq_errno();
+//            printf("Error sending message: %s\n", zmq_strerror(errnum));
+//        } else {
+//            // 发送成功，bytes_sent 包含发送的字节数
+//            hasSendI = true;
+//            printf("Sent %d bytes\n", bytes_sent);
+//        }
+//        // 清理
+//        zmq_msg_close(&message2);
+//    }
 
-    // 查询当前接收缓冲区大小
-    int sndhwm;
-    size_t sndhwm_size = sizeof(sndhwm);
-    zmq_getsockopt(socket, ZMQ_SNDHWM, &sndhwm, &sndhwm_size);
-    std::cout << "Send buffer size: " << sndhwm_size << std::endl;
-
-    int sndhwm2;
-    size_t sndhwm_size2 = sizeof(sndhwm);
-    zmq_getsockopt(socket, ZMQ_RCVHWM, &sndhwm2, &sndhwm_size2);
-    std::cout << "Receive buffer size: " << sndhwm_size << std::endl;
-
-    if (bytes_sent == -1) {
-        // 发送失败，处理错误
-        int errnum = zmq_errno();
-        printf("Error sending message: %s\n", zmq_strerror(errnum));
-    } else {
-        // 发送成功，bytes_sent 包含发送的字节数
-        printf("Sent %d bytes\n", bytes_sent);
-    }
-    // 清理
-    zmq_msg_close(&message2);
 
     continuePlaying();
 }

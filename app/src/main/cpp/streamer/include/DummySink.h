@@ -49,7 +49,7 @@ private:
     int ppsReceived = 0;
     u_int8_t *ppsReceiveBuffer;
     AMediaCodec *fcodec;
-    const char *filename = "/sdcard/header.264";
+    const char *filename = "/data/user/0/com.example.ktrtspplayer/cache/send.264";
 };
 
 #endif //SOCKECTDEMO2_DUMMYSINK_H
