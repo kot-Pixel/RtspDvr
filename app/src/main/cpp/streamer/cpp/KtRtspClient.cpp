@@ -22,19 +22,10 @@ KtRtspClient::KtRtspClient(char const* rtspURL) {
 }
 
 void KtRtspClient::print_sdp_info() {
-    char sdp_buffer[2048];
-    if (av_sdp_create(&format_ctx, 1, sdp_buffer, sizeof(sdp_buffer)) == 0) {
-        sdp_info = sdp_buffer;
-        LOGI("success get sdp information: %s", sdp_info.c_str());
-        if (mZmqSocketSender) {
-            zmq_msg_init_data(&message, (void*)sdp_info.data(), sdp_info.size(), nullptr, nullptr);
-            zmq_msg_send(&message, mZmqSender, 0);
-            zmq_msg_close(&message);
-        }
-    } else {
-        LOGE("failed to retrieve sdp information.");
-        sdp_info.clear();
-    }
+    if (extradata == NULL || extradata_size < 0) return;
+    zmq_msg_init_data(&message, (void*)extradata, extradata_size, nullptr, nullptr);
+    zmq_msg_send(&message, mZmqSender, 0);
+    zmq_msg_close(&message);
 }
 
 void KtRtspClient::establishRtsp() {
@@ -60,10 +51,16 @@ void KtRtspClient::establishRtsp() {
     for (unsigned int i = 0; i < format_ctx->nb_streams; i++) {
         if (format_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
             video_stream_index = i;
+            // 确保是 H.264 视频流
+            if (format_ctx->streams[i]->codecpar->codec_id == AV_CODEC_ID_H264) {
+
+                // 获取 SPS 和 PPS
+                extradata = format_ctx->streams[i]->codecpar->extradata;
+                extradata_size= format_ctx->streams[i]->codecpar->extradata_size;
+            }
             break;
         }
     }
-
     if (video_stream_index == -1) {
         avformat_close_input(&format_ctx);
         LOGE("ktRtspClient can't find video stream");
@@ -81,6 +78,9 @@ void KtRtspClient::establishRtsp() {
         if (packet.stream_index == video_stream_index) {
             LOGI("read frame and pack size is %d", packet.size);
             LOGI("NAL data %02X", packet.data[4]);
+            zmq_msg_init_data(&message, (void*)packet.data, packet.size, nullptr, nullptr);
+            zmq_msg_send(&message, mZmqSender, 0);
+            zmq_msg_close(&message);
         }
         av_packet_unref(&packet);  // 释放当前包
     }

@@ -33,8 +33,8 @@ private :
     AVFormatContext* format_ctx = nullptr;
     //视频流index
     int video_stream_index = -1;
-    //视频流的的sdpInfo
-    std::string sdp_info;
+    uint8_t *extradata = NULL;
+    int extradata_size = -1;
 
     //ZMQ Context
     void* mZmqContext = NULL;
