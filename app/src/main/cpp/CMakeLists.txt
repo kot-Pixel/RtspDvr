@@ -100,7 +100,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 #        ${OPENSSL_CRYPTO_LIB}
 #        ${OPENSSL_SSL_LIB}
 #
-#        ${zeroMq_ZMQ_LIB}
+        ${zeroMq_ZMQ_LIB}
 
         ${FFMPEG_AV_UTIL_LIB_DIR}
         ${FFMPEG_AVCODEC_LIB_DIR}

@@ -12,14 +12,28 @@ KtRtspClient* KtRtspClient::createNew(char const* rtspURL) {
 
 KtRtspClient::KtRtspClient(char const* rtspURL) {
     mRtspUrl = rtspURL;
+    mZmqContext = zmq_ctx_new();
+    if (mZmqContext == NULL) return;
+    LOGI("success create zmq context");
+    mZmqSender = zmq_socket(mZmqContext, ZMQ_PUSH);
+    if (mZmqSender == NULL) return;
+    if (zmq_bind(mZmqSender, "ipc:///sdcard/zmq.sock") != 0) return;
+    mZmqSocketSender = true;
 }
 
 void KtRtspClient::print_sdp_info() {
-    // 获取流的 SDP 信息
-    if (format_ctx->pb && format_ctx->pb->opaque) {
-        LOGI("SDP Information:\n%s", format_ctx->pb->opaque);
+    char sdp_buffer[2048];
+    if (av_sdp_create(&format_ctx, 1, sdp_buffer, sizeof(sdp_buffer)) == 0) {
+        sdp_info = sdp_buffer;
+        LOGI("success get sdp information: %s", sdp_info.c_str());
+        if (mZmqSocketSender) {
+            zmq_msg_init_data(&message, (void*)sdp_info.data(), sdp_info.size(), nullptr, nullptr);
+            zmq_msg_send(&message, mZmqSender, 0);
+            zmq_msg_close(&message);
+        }
     } else {
-        LOGE("Failed to retrieve SDP information.");
+        LOGE("failed to retrieve sdp information.");
+        sdp_info.clear();
     }
 }
 
@@ -73,7 +87,6 @@ void KtRtspClient::establishRtsp() {
 
     // 释放资源
     avformat_close_input(&format_ctx);
-
 }
 
 KtRtspClient::~KtRtspClient() {
