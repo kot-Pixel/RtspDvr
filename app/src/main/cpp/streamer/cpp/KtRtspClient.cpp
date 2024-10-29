@@ -77,12 +77,14 @@ void KtRtspClient::establishRtsp() {
     while (av_read_frame(format_ctx, &packet) >= 0) {
         if (packet.stream_index == video_stream_index) {
             LOGI("read frame and pack size is %d", packet.size);
-            LOGI("NAL data %02X", packet.data[4]);
-            zmq_msg_init_data(&message, (void*)packet.data, packet.size, nullptr, nullptr);
-            zmq_msg_send(&message, mZmqSender, 0);
+            auto* packet_data_copy = (uint8_t*)malloc(packet.size);
+            memcpy(packet_data_copy, packet.data, packet.size);
+            LOGI("NAL data %02X", packet_data_copy[4]);
+            zmq_msg_init_data(&message, packet_data_copy, packet.size, nullptr, nullptr);
+            zmq_msg_send(&message, mZmqSender, ZMQ_DONTWAIT);
             zmq_msg_close(&message);
         }
-        av_packet_unref(&packet);  // 释放当前包
+        av_packet_unref(&packet);
     }
 
     // 释放资源
