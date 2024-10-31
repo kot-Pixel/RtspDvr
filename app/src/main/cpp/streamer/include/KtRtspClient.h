@@ -6,6 +6,10 @@
 #define SOCKECTDEMO2_KTRTSPCLIENT_H
 
 #include "KtStreamClientState.h"
+#include "readerwritercircularbuffer.h"
+#include "readerwriterqueue.h"
+#include "KtRtpFrame.h"
+#include <memory>
 
 //#include "../../live555/include/UsageEnvironment/UsageEnvironment.hh"
 //#include "../../live555/include/liveMedia/RTSPClient.hh"
@@ -16,7 +20,7 @@ extern "C" {
 #include <../../zeroMq/include/zmq.h>
 }
 
-
+using namespace moodycamel;
 
 class KtRtspClient {
 public:
@@ -24,7 +28,9 @@ public:
     void establishRtsp();
 protected:
     KtRtspClient(char const *rtspURL);
-    void print_sdp_info();
+    void sendClientSpsPps();
+    static bool judgeFrameIsKeyFrame(uint8_t);
+    void popCachedFrame(AVPacket packet);
 
     virtual ~KtRtspClient();
 
@@ -36,11 +42,15 @@ private :
     uint8_t *extradata = NULL;
     int extradata_size = -1;
 
-    //ZMQ Context
+    //Socket ZMQ Context
     void* mZmqContext = NULL;
     void* mZmqSender = NULL;
     bool mZmqSocketSender = false;
     zmq_msg_t message;
+
+    ReaderWriterQueue<std::shared_ptr<KtRtpFrame>> mReaderWriteQueue;
+    //默认缓存时间长度
+    int defaultCachedDuration = 10;
 };
 
 #endif //SOCKECTDEMO2_KTRTSPCLIENT_H

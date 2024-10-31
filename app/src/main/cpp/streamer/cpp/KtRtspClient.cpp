@@ -21,7 +21,7 @@ KtRtspClient::KtRtspClient(char const* rtspURL) {
     mZmqSocketSender = true;
 }
 
-void KtRtspClient::print_sdp_info() {
+void KtRtspClient::sendClientSpsPps() {
     if (extradata == NULL || extradata_size < 0) return;
     zmq_msg_init_data(&message, (void*)extradata, extradata_size, nullptr, nullptr);
     zmq_msg_send(&message, mZmqSender, 0);
@@ -69,7 +69,7 @@ void KtRtspClient::establishRtsp() {
 
     LOGI("ktRtspClient find video stream and video stream index is %d", video_stream_index);
 
-    print_sdp_info();
+    sendClientSpsPps();
 
     AVPacket packet;
 
@@ -83,6 +83,8 @@ void KtRtspClient::establishRtsp() {
             zmq_msg_init_data(&message, packet_data_copy, packet.size, nullptr, nullptr);
             zmq_msg_send(&message, mZmqSender, ZMQ_DONTWAIT);
             zmq_msg_close(&message);
+
+            popCachedFrame(packet);
         }
         av_packet_unref(&packet);
     }
@@ -91,5 +93,34 @@ void KtRtspClient::establishRtsp() {
     avformat_close_input(&format_ctx);
 }
 
+void KtRtspClient::popCachedFrame(AVPacket packet) {
+    if (packet.data == nullptr || packet.size <= 0) return;
+    if (judgeFrameIsKeyFrame(packet.data[4])) {
+        std::shared_ptr<KtRtpFrame>* firstElementPtr = mReaderWriteQueue.peek();
+        while (firstElementPtr && *firstElementPtr) {
+            std::shared_ptr<KtRtpFrame> firstElement = *firstElementPtr;
+            if ((packet.pts - firstElement->mRtpFramePts) > 9000) {
+                std::shared_ptr<KtRtpFrame> temp;
+                mReaderWriteQueue.try_dequeue(temp);
+                temp.reset();
+                firstElementPtr = mReaderWriteQueue.peek();
+            } else {
+                if (!judgeFrameIsKeyFrame(firstElement->mRtpFramePointer[4])) {
+                    break;
+                }
+                break;
+            }
+        }
+    }
+    mReaderWriteQueue.enqueue(std::make_shared<KtRtpFrame>(packet.pts, packet.size, packet.data));
+}
+
+
+
 KtRtspClient::~KtRtspClient() {
 }
+
+bool KtRtspClient::judgeFrameIsKeyFrame(uint8_t naulValue) {
+    return (naulValue & 0x1F) == 5;
+}
+

@@ -77,6 +77,7 @@ add_executable(${CMAKE_PROJECT_NAME}
 #        streamer/cpp/KtRtspClient.cpp
 #        streamer/cpp/sdpUtils.cpp
 #        streamer/cpp/NjdaStream.cpp
+        streamer/cpp/KtRtpFrame.cpp
         streamer/cpp/KtRtspClient.cpp
         streamer/cpp/KtRtspStreamer.cpp
 )
