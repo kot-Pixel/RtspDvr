@@ -28,6 +28,10 @@ void KtRtspClient::sendClientSpsPps() {
     zmq_msg_close(&message);
 }
 
+void custom_free(void *data, void *hint) {
+    free(data);  // 释放数据
+}
+
 void KtRtspClient::establishRtsp() {
     if (mRtspUrl == nullptr) {
         LOGI("mRtspUrl is null pointer");
@@ -80,7 +84,7 @@ void KtRtspClient::establishRtsp() {
             auto* packet_data_copy = (uint8_t*)malloc(packet.size);
             memcpy(packet_data_copy, packet.data, packet.size);
             LOGI("NAL data %02X", packet_data_copy[4]);
-            zmq_msg_init_data(&message, packet_data_copy, packet.size, nullptr, nullptr);
+            zmq_msg_init_data(&message, packet_data_copy, packet.size, custom_free, nullptr);
             zmq_msg_send(&message, mZmqSender, ZMQ_DONTWAIT);
             zmq_msg_close(&message);
 
