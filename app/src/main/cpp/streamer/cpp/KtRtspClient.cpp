@@ -61,6 +61,9 @@ void KtRtspClient::establishRtsp() {
                 // 获取 SPS 和 PPS
                 extradata = format_ctx->streams[i]->codecpar->extradata;
                 extradata_size= format_ctx->streams[i]->codecpar->extradata_size;
+
+                time_base = format_ctx->streams[i]->time_base;
+                LOGI("Time base: %d/%d\n", time_base.num, time_base.den);
             }
             break;
         }
@@ -98,25 +101,32 @@ void KtRtspClient::establishRtsp() {
 }
 
 void KtRtspClient::popCachedFrame(AVPacket packet) {
-    if (packet.data == nullptr || packet.size <= 0) return;
-    if (judgeFrameIsKeyFrame(packet.data[4])) {
-        std::shared_ptr<KtRtpFrame>* firstElementPtr = mReaderWriteQueue.peek();
-        while (firstElementPtr && *firstElementPtr) {
-            std::shared_ptr<KtRtpFrame> firstElement = *firstElementPtr;
-            if ((packet.pts - firstElement->mRtpFramePts) > 9000) {
-                std::shared_ptr<KtRtpFrame> temp;
-                mReaderWriteQueue.try_dequeue(temp);
-                temp.reset();
-                firstElementPtr = mReaderWriteQueue.peek();
-            } else {
-                if (!judgeFrameIsKeyFrame(firstElement->mRtpFramePointer[4])) {
-                    break;
-                }
-                break;
-            }
+    if (packet.data == nullptr || packet.size <= 0 || packet.pts < 0) return;
+    int64_t drop = packet.pts - (10 * time_base.den);
+    std::shared_ptr<KtRtpFrame> *firstElementPtr = mReaderWriteQueue.peek();
+    while (firstElementPtr && *firstElementPtr) {
+        std::shared_ptr<KtRtpFrame> firstElement = *firstElementPtr;
+        LOGI("first Element pts is %ld and drop is %ld", firstElement->mRtpFramePts, drop);
+        if (firstElement->mRtpFramePts < drop) {
+            std::shared_ptr<KtRtpFrame> temp;
+            mReaderWriteQueue.try_dequeue(temp);
+            temp.reset();
+            firstElementPtr = mReaderWriteQueue.peek();
+        } if (judgeFrameIsKeyFrame(firstElement->mRtpFramePointer[4])) {
+            LOGI("cached h264 size over 10s");
+            break;
+        } else {
+            std::shared_ptr<KtRtpFrame> temp;
+            mReaderWriteQueue.try_dequeue(temp);
+            temp.reset();
+            firstElementPtr = mReaderWriteQueue.peek();
         }
     }
-    mReaderWriteQueue.enqueue(std::make_shared<KtRtpFrame>(packet.pts, packet.size, packet.data));
+    bool sendResult = mReaderWriteQueue.enqueue(
+            std::make_shared<KtRtpFrame>(packet.pts, packet.size, packet.data));
+    LOGI("send to enqueue result is %d, send packet pts is %ld, send packet size is %d", sendResult,
+         packet.pts, packet.size);
+    LOGI("the queue first element is queue size approx is %zu", mReaderWriteQueue.size_approx());
 }
 
 

@@ -41,6 +41,7 @@ private :
     int video_stream_index = -1;
     uint8_t *extradata = NULL;
     int extradata_size = -1;
+    AVRational time_base;
 
     //Socket ZMQ Context
     void* mZmqContext = NULL;
