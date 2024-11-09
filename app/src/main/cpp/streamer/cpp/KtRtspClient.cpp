@@ -58,6 +58,8 @@ void KtRtspClient::establishRtsp() {
             // 确保是 H.264 视频流
             if (format_ctx->streams[i]->codecpar->codec_id == AV_CODEC_ID_H264) {
 
+                mCodecParameter = format_ctx->streams[i]->codecpar;
+
                 // 获取 SPS 和 PPS
                 extradata = format_ctx->streams[i]->codecpar->extradata;
                 extradata_size= format_ctx->streams[i]->codecpar->extradata_size;
@@ -76,6 +78,58 @@ void KtRtspClient::establishRtsp() {
 
     LOGI("ktRtspClient find video stream and video stream index is %d", video_stream_index);
 
+
+    int ret;
+
+    // 打开输出 MP4 文件
+    ret = avformat_alloc_output_context2(&fmtCtx, NULL, "mp4", "/sdcard/output.mp4");
+    if (ret < 0) {
+        LOGI("Error allocating output context: %s\n", av_err2str(ret));
+        return;
+    }
+
+    LOGI("Success allocating output context\n");
+
+    // 创建视频流
+    videoStream = avformat_new_stream(fmtCtx, nullptr);
+    if (!videoStream) {
+        LOGE("Error creating new stream\n");
+        return;
+    }
+
+    LOGE("Success creating new stream\n");
+
+    // 设置视频流的基本参数，这里不使用编码器
+
+    videoStream->codecpar->codec_id = mCodecParameter->codec_id;
+    videoStream->codecpar->codec_type = mCodecParameter->codec_type;
+    videoStream->codecpar->width = mCodecParameter->width;
+    videoStream->codecpar->height = mCodecParameter->height;
+    videoStream->codecpar->format = mCodecParameter->format;
+    videoStream->codecpar->extradata = extradata;
+    videoStream->codecpar->extradata_size = extradata_size;
+
+    // 打开输出文件
+    if (!(fmtCtx->oformat->flags & AVFMT_NOFILE)) {
+        ret = avio_open(&fmtCtx->pb, outputMp4, AVIO_FLAG_WRITE);
+        if (ret < 0) {
+            LOGE("Error opening output file: %s\n", av_err2str(ret));
+            return;
+        }
+    }
+
+    LOGI("Success opening output file\n");
+
+    // 写入文件头
+    ret = avformat_write_header(fmtCtx, nullptr);
+    if (ret < 0) {
+        LOGE("Error writing file header: %s\n", av_err2str(ret));
+        return;
+    }
+
+    LOGI("Success  writing file header");
+
+
     sendClientSpsPps();
 
     AVPacket packet;
@@ -90,8 +144,29 @@ void KtRtspClient::establishRtsp() {
             zmq_msg_init_data(&message, packet_data_copy, packet.size, custom_free, nullptr);
             zmq_msg_send(&message, mZmqSender, ZMQ_DONTWAIT);
             zmq_msg_close(&message);
-
-            popCachedFrame(packet);
+            if (writeFrameCount < 500) {
+                if(judgeFrameIsKeyFrame(packet.data[4])) {
+                    if (av_write_frame(fmtCtx, &packet) >= 0) {
+                        hasWriteKeyFrame = true;
+                        writeFrameCount += 1;
+                    }
+                } else {
+                    if (hasWriteKeyFrame) {
+                        if (av_write_frame(fmtCtx, &packet) >= 0) {
+                            writeFrameCount += 1;
+                        }
+                    }
+                }
+            } else {
+                // 写入文件尾
+                ret = av_write_trailer(fmtCtx);
+                if (ret < 0) {
+                    LOGI("Error writing trailer\n");
+                }
+                LOGI("Success writing trailer\n");
+                break;
+            }
+//            popCachedFrame(packet);
         }
         av_packet_unref(&packet);
     }
@@ -100,9 +175,11 @@ void KtRtspClient::establishRtsp() {
     avformat_close_input(&format_ctx);
 }
 
+
 void KtRtspClient::popCachedFrame(AVPacket packet) {
     if (packet.data == nullptr || packet.size <= 0 || packet.pts < 0) return;
     int64_t drop = packet.pts - (10 * time_base.den);
+    if (drop < 0) return;
     std::shared_ptr<KtRtpFrame> *firstElementPtr = mReaderWriteQueue.peek();
     while (firstElementPtr && *firstElementPtr) {
         std::shared_ptr<KtRtpFrame> firstElement = *firstElementPtr;
@@ -136,5 +213,38 @@ KtRtspClient::~KtRtspClient() {
 
 bool KtRtspClient::judgeFrameIsKeyFrame(uint8_t naulValue) {
     return (naulValue & 0x1F) == 5;
+}
+
+void KtRtspClient::startWriteToMp4File() {
+
+}
+
+void KtRtspClient::initWriteFormatContext() {
+//
+//
+//    AVPacket pkt;
+//    av_packet_unref(&pkt);
+//
+//    std::shared_ptr<KtRtpFrame> temp;
+//    while(mReaderWriteQueue.try_dequeue(temp)) {
+//        pkt.data = temp->mRtpFramePointer;  // 裸数据
+//        pkt.size = temp->mRtpFrameSize;             // 数据大小
+//        // 设置 PTS 和 DTS，假设帧率为 30 fps
+//        pkt.pts = pkt.dts = temp->mRtpFramePts;
+//        pkt.duration = 1; // 每帧持续时间，根据帧率计算
+//        ret = av_write_frame(fmtCtx, &pkt);
+//        if (ret < 0) {
+//            LOGI("Error writing frame: %s\n", av_err2str(ret));
+//            break;
+//        } else {
+//            av_packet_unref(&pkt);
+//            temp.reset();
+//        }
+//    }
+//    av_packet_unref(&pkt);
+//
+//    // 写入文件尾并清理资源
+//    av_write_trailer(fmtCtx);
+//    avformat_free_context(fmtCtx);
 }
 

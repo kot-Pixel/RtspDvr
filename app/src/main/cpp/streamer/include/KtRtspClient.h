@@ -35,6 +35,7 @@ protected:
     virtual ~KtRtspClient();
 
 private :
+    //rtsp
     char const *mRtspUrl = nullptr;
     AVFormatContext* format_ctx = nullptr;
     //视频流index
@@ -42,6 +43,7 @@ private :
     uint8_t *extradata = NULL;
     int extradata_size = -1;
     AVRational time_base;
+    AVCodecParameters *mCodecParameter = nullptr;
 
     //Socket ZMQ Context
     void* mZmqContext = NULL;
@@ -52,6 +54,16 @@ private :
     ReaderWriterQueue<std::shared_ptr<KtRtpFrame>> mReaderWriteQueue;
     //默认缓存时间长度
     int defaultCachedDuration = 10;
+
+    //Mp4Writer
+    bool hasWriteKeyFrame = false;
+    int writeFrameCount = 0;
+    const char *outputMp4 = "/sdcard/save.mp4";
+    AVFormatContext* fmtCtx = nullptr;
+    AVStream *videoStream = nullptr;
+
+    void initWriteFormatContext();
+    void startWriteToMp4File();
 };
 
 #endif //SOCKECTDEMO2_KTRTSPCLIENT_H
