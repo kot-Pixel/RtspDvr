@@ -9,6 +9,7 @@
 #include "readerwritercircularbuffer.h"
 #include "readerwriterqueue.h"
 #include "KtRtpFrame.h"
+#include "KtAudioRecorder.h"
 #include <memory>
 
 //#include "../../live555/include/UsageEnvironment/UsageEnvironment.hh"
@@ -26,6 +27,7 @@ class KtRtspClient {
 public:
     static KtRtspClient *createNew(char const *rtspURL);
     void establishRtsp();
+    void startRecordLocalAudio();
 protected:
     KtRtspClient(char const *rtspURL);
     void sendClientSpsPps();
@@ -64,6 +66,9 @@ private :
 
     void initWriteFormatContext();
     void startWriteToMp4File();
+
+    //audio recorder
+    KtAudioRecorder* audioRecorder = nullptr;
 };
 
 #endif //SOCKECTDEMO2_KTRTSPCLIENT_H

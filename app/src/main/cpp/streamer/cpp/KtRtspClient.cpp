@@ -248,3 +248,7 @@ void KtRtspClient::initWriteFormatContext() {
 //    avformat_free_context(fmtCtx);
 }
 
+void KtRtspClient::startRecordLocalAudio() {
+    audioRecorder->initKtAudioRecorder();
+}
+

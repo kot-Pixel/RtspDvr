@@ -77,6 +77,7 @@ add_executable(${CMAKE_PROJECT_NAME}
 #        streamer/cpp/KtRtspClient.cpp
 #        streamer/cpp/sdpUtils.cpp
 #        streamer/cpp/NjdaStream.cpp
+        streamer/cpp/KtAudioRecorder.cpp
         streamer/cpp/KtRtpFrame.cpp
         streamer/cpp/KtRtspClient.cpp
         streamer/cpp/KtRtspStreamer.cpp
@@ -90,6 +91,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         android
         mediandk
         z
+
+        aaudio
 
         #Live555 lib
 #        ${LIVE555_USAGE_ENVIRONMENT_LIB}
