@@ -11,6 +11,7 @@
 #include "KtRtpFrame.h"
 #include "KtAudioRecorder.h"
 #include <memory>
+#include "../../interface/StreamInterface.h"
 
 //#include "../../live555/include/UsageEnvironment/UsageEnvironment.hh"
 //#include "../../live555/include/liveMedia/RTSPClient.hh"
@@ -69,6 +70,9 @@ private :
 
     //audio recorder
     KtAudioRecorder* audioRecorder = nullptr;
+
+    //stream interface
+    StreamInterface* interface;
 };
 
 #endif //SOCKECTDEMO2_KTRTSPCLIENT_H

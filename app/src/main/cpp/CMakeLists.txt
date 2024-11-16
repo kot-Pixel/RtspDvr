@@ -57,6 +57,9 @@ set(FFMPEG_SW_SCALE_LIB_DIR ${FFMPEG_ROOT_DIR}/lib/libswscale.a)
 
 include_directories(${FFMPEG_INCLUDE_DIR})
 
+
+set(RAPIDJSON_ROOT_DIR ${CMAKE_SOURCE_DIR}/rapidjson)
+include_directories(${RAPIDJSON_ROOT_DIR})
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
@@ -77,6 +80,9 @@ add_executable(${CMAKE_PROJECT_NAME}
 #        streamer/cpp/KtRtspClient.cpp
 #        streamer/cpp/sdpUtils.cpp
 #        streamer/cpp/NjdaStream.cpp
+        interface/Parameter.cpp
+        interface/Function.cpp
+        interface/StreamInterface.cpp
         streamer/cpp/KtAudioRecorder.cpp
         streamer/cpp/KtRtpFrame.cpp
         streamer/cpp/KtRtspClient.cpp

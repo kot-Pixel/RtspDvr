@@ -4,6 +4,7 @@
 
 #include "../include/KtRtspClient.h"
 #include "../include/log_utils.h"
+
 #include <jni.h>
 
 KtRtspClient* KtRtspClient::createNew(char const* rtspURL) {
@@ -11,6 +12,9 @@ KtRtspClient* KtRtspClient::createNew(char const* rtspURL) {
 }
 
 KtRtspClient::KtRtspClient(char const* rtspURL) {
+    interface = new StreamInterface();
+    interface->reqLooperInner();
+
     mRtspUrl = rtspURL;
     mZmqContext = zmq_ctx_new();
     if (mZmqContext == NULL) return;
