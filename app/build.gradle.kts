@@ -17,7 +17,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cppFlags += "-std=c++11"
+                cppFlags += "-std=c++17"
                 abiFilters += "arm64-v8a"
             }
         }

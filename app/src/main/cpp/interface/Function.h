@@ -2,7 +2,11 @@
 // Created by Admin on 2024/11/16.
 //
 #include <string>
+#include <utility>
 #include <vector>
+#include <map>
+#include <typeindex>
+#include <any>
 #include "document.h"
 #include "Parameter.h"
 
@@ -35,11 +39,39 @@ public:
     static Function error() {
         return {"Error", {}, "Error"};
     }
+
+    // Getter Methods
+    std::string getFunctionName() const { return mFunctionName; }
+    std::vector<Parameter> getFunctionParam() const { return mFunctionParam; }
+    std::string getFunctionRet() const { return mFunctionRet; }
 private:
     std::string mFunctionName;
     std::vector<Parameter> mFunctionParam;
     std::string mFunctionRet;
 };
+
+
+class FunctionMapper {
+public:
+
+    void registerFunction(const std::string& name, std::function<std::any(std::vector<std::any>)> func) {
+        functionMap[name] = std::move(func);
+    }
+
+    std::any invokeFunction(const std::string& name, const std::vector<std::any>& args) {
+        auto it = functionMap.find(name);
+        if (it != functionMap.end()) {
+            return it->second(args);
+        } else {
+            throw std::runtime_error("Function not found.");
+        }
+    }
+
+private:
+    std::map<std::string, std::function<std::any(std::vector<std::any>)>> functionMap;
+};
+
+
 
 
 #endif //SOCKECTDEMO2_FUNCTION_H

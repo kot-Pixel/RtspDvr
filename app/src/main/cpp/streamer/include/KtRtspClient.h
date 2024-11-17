@@ -27,6 +27,10 @@ using namespace moodycamel;
 class KtRtspClient {
 public:
     static KtRtspClient *createNew(char const *rtspURL);
+
+    //stream interface
+    StreamInterface* interface;
+
     void establishRtsp();
     void startRecordLocalAudio();
 protected:
@@ -71,8 +75,8 @@ private :
     //audio recorder
     KtAudioRecorder* audioRecorder = nullptr;
 
-    //stream interface
-    StreamInterface* interface;
 };
+
+static KtRtspClient* mKtRtspClient = nullptr;
 
 #endif //SOCKECTDEMO2_KTRTSPCLIENT_H

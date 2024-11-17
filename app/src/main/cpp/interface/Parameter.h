@@ -9,7 +9,10 @@ class Parameter {
 public:
     Parameter(std::string parameterName, std::string parameterType, std::string parameterValue);
     virtual ~Parameter() = default;
-
+    // Getter Methods
+    std::string getParameterName() const { return mParameterName; }
+    std::string getParameterType() const { return mParameterType; }
+    std::string getParameterValue() const { return mParameterValue; }
 private:
     std::string mParameterName;
     std::string mParameterType;

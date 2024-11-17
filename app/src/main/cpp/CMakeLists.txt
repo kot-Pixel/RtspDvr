@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.22.1)
 # build script scope).
 project("SocketClientDemo22")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti -Wall -fexceptions -DXLOCALE_NOT_USED=1 -DNULL=0 -DNO_SSTREAM=1 -DSOCKLEN_T=socklen_t -UIP_ADD_SOURCE_MEMBERSHIP")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fno-rtti -Wall -fexceptions -DXLOCALE_NOT_USED=1 -DNULL=0 -DNO_SSTREAM=1 -frtti -DSOCKLEN_T=socklen_t -UIP_ADD_SOURCE_MEMBERSHIP")
 
 # OPEN SSL 的相关编译路径
 set(OPENSSL_ROOT_DIR ${CMAKE_SOURCE_DIR}/openssl)

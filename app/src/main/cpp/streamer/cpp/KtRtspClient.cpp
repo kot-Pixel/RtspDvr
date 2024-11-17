@@ -7,14 +7,12 @@
 
 #include <jni.h>
 
+
 KtRtspClient* KtRtspClient::createNew(char const* rtspURL) {
     return new KtRtspClient(rtspURL);
 }
 
 KtRtspClient::KtRtspClient(char const* rtspURL) {
-    interface = new StreamInterface();
-    interface->reqLooperInner();
-
     mRtspUrl = rtspURL;
     mZmqContext = zmq_ctx_new();
     if (mZmqContext == NULL) return;
@@ -23,6 +21,7 @@ KtRtspClient::KtRtspClient(char const* rtspURL) {
     if (mZmqSender == NULL) return;
     if (zmq_bind(mZmqSender, "ipc:///sdcard/zmq.sock") != 0) return;
     mZmqSocketSender = true;
+    interface = new StreamInterface();
 }
 
 void KtRtspClient::sendClientSpsPps() {
@@ -148,28 +147,28 @@ void KtRtspClient::establishRtsp() {
             zmq_msg_init_data(&message, packet_data_copy, packet.size, custom_free, nullptr);
             zmq_msg_send(&message, mZmqSender, ZMQ_DONTWAIT);
             zmq_msg_close(&message);
-            if (writeFrameCount < 500) {
-                if(judgeFrameIsKeyFrame(packet.data[4])) {
-                    if (av_write_frame(fmtCtx, &packet) >= 0) {
-                        hasWriteKeyFrame = true;
-                        writeFrameCount += 1;
-                    }
-                } else {
-                    if (hasWriteKeyFrame) {
-                        if (av_write_frame(fmtCtx, &packet) >= 0) {
-                            writeFrameCount += 1;
-                        }
-                    }
-                }
-            } else {
-                // 写入文件尾
-                ret = av_write_trailer(fmtCtx);
-                if (ret < 0) {
-                    LOGI("Error writing trailer\n");
-                }
-                LOGI("Success writing trailer\n");
-                break;
-            }
+//            if (writeFrameCount < 500) {
+//                if(judgeFrameIsKeyFrame(packet.data[4])) {
+//                    if (av_write_frame(fmtCtx, &packet) >= 0) {
+//                        hasWriteKeyFrame = true;
+//                        writeFrameCount += 1;
+//                    }
+//                } else {
+//                    if (hasWriteKeyFrame) {
+//                        if (av_write_frame(fmtCtx, &packet) >= 0) {
+//                            writeFrameCount += 1;
+//                        }
+//                    }
+//                }
+//            } else {
+//                // 写入文件尾
+//                ret = av_write_trailer(fmtCtx);
+//                if (ret < 0) {
+//                    LOGI("Error writing trailer\n");
+//                }
+//                LOGI("Success writing trailer\n");
+//                break;
+//            }
 //            popCachedFrame(packet);
         }
         av_packet_unref(&packet);

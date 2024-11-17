@@ -3,8 +3,8 @@
 //
 #include "StreamInterface.h"
 
-
 StreamInterface::StreamInterface() {
+    mapper = new FunctionMapper();
     mInterfaceZmqContext = zmq_ctx_new();
     if (mInterfaceZmqContext == nullptr) return;
     LOGI("interface success create zmq context");
@@ -16,7 +16,6 @@ StreamInterface::StreamInterface() {
         mInterfaceBindState = true;
     }
     LOGI("interface udx bind state %d", mInterfaceBindState);
-//    startRequestLooper();
 }
 
 Function StreamInterface::invokeStringParse(const char *jsonStr) {
@@ -44,9 +43,57 @@ void StreamInterface::reqLooperInner() {
                 LOGI("zmq rec interface msg, msg size is %lu", message_size);
                 auto *message_data = (char *) zmq_msg_data(&message);
                 Function function = invokeStringParse(message_data);
+                std::vector<std::any> args;
+                std:: string returnRet = function.getFunctionRet();
+                for (const auto& param : function.getFunctionParam()) {
+                    // 使用 if-else 来替代 switch
+                    if (param.getParameterType() == "int") {
+                        args.emplace_back(std::stoi(param.getParameterValue()));
+                    } else if (param.getParameterType() == "double") {
+                        args.emplace_back(std::stod(param.getParameterValue()));
+                    } else if (param.getParameterType() == "bool") {
+                        args.emplace_back(std::stod(param.getParameterValue()));
+                    } else if (param.getParameterType() == "string") {
+                        args.emplace_back(param.getParameterValue().data());
+                    } else if (param.getParameterType() == "float") {
+                        args.emplace_back(std::stof(param.getParameterValue()));
+                    } else if (param.getParameterType() == "u_char") {
+                        args.emplace_back(std::stoi(param.getParameterValue()));
+                    } else {
+                        LOGE("unsupported parameter type");
+                    }
+                }
+                std::string reply;
+                if (returnRet == "int") {
+                    int result = std::any_cast<int>(
+                            mapper->invokeFunction(function.getFunctionName(), args));
+                    reply = std::to_string(result);
+                } else if (returnRet == "double") {
+                    auto result = std::any_cast<double>(
+                            mapper->invokeFunction(function.getFunctionName(), args));
+                    reply = std::to_string(result);
+                } else if (returnRet == "bool") {
+                    bool result = std::any_cast<bool>(
+                            mapper->invokeFunction(function.getFunctionName(), args));
+                    reply = std::to_string(result);
+                } else if (returnRet== "string") {
+                    reply = std::any_cast<std::string>(
+                            mapper->invokeFunction(function.getFunctionName(), args));
+                } else if (returnRet== "float") {
+                    auto result = std::any_cast<float>(
+                            mapper->invokeFunction(function.getFunctionName(), args));
+                    reply = std::to_string(result);
+                } else if (returnRet == "u_char") {
+                    auto result = std::any_cast<u_char>(
+                            mapper->invokeFunction(function.getFunctionName(), args));
+                    reply = std::to_string(result);
+                } else if (returnRet == "void") {
+                    auto result = std::any_cast<std::string>(
+                            mapper->invokeFunction(function.getFunctionName(), args));
+                } else {
+                    LOGE("unsupported return type");
+                }
 
-                function;
-                std::string reply = "ok";
                 zmq_msg_init_data(&message, (void *) reply.data(), reply.size(), nullptr, nullptr);
                 int ret = zmq_msg_send(&message, mInterfaceZmqSocket, 0);
                 if (rc < 0) {

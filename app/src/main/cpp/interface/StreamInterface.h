@@ -6,6 +6,7 @@
 #include "Function.h"
 #include "zmq.h"
 #include <thread>
+#include <queue>
 #include "../streamer/include/log_utils.h"
 
 using namespace rapidjson;
@@ -18,6 +19,7 @@ public:
     StreamInterface();
     virtual ~StreamInterface() = default;
     void reqLooperInner();
+    FunctionMapper* mapper;
 
 private:
     //parse string to function invoke
