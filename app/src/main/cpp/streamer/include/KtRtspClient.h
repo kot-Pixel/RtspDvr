@@ -33,6 +33,10 @@ public:
 
     void establishRtsp();
     void startRecordLocalAudio();
+
+    std::atomic<bool> mWriteFlag{false};
+
+
 protected:
     KtRtspClient(char const *rtspURL);
     void sendClientSpsPps();
@@ -68,6 +72,8 @@ private :
     const char *outputMp4 = "/sdcard/save.mp4";
     AVFormatContext* fmtCtx = nullptr;
     AVStream *videoStream = nullptr;
+    bool mWriteComplete = false;
+
 
     void initWriteFormatContext();
     void startWriteToMp4File();

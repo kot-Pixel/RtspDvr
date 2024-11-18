@@ -46,7 +46,6 @@ void StreamInterface::reqLooperInner() {
                 std::vector<std::any> args;
                 std:: string returnRet = function.getFunctionRet();
                 for (const auto& param : function.getFunctionParam()) {
-                    // 使用 if-else 来替代 switch
                     if (param.getParameterType() == "int") {
                         args.emplace_back(std::stoi(param.getParameterValue()));
                     } else if (param.getParameterType() == "double") {

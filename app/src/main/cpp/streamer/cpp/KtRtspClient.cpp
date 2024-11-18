@@ -147,28 +147,34 @@ void KtRtspClient::establishRtsp() {
             zmq_msg_init_data(&message, packet_data_copy, packet.size, custom_free, nullptr);
             zmq_msg_send(&message, mZmqSender, ZMQ_DONTWAIT);
             zmq_msg_close(&message);
-//            if (writeFrameCount < 500) {
-//                if(judgeFrameIsKeyFrame(packet.data[4])) {
-//                    if (av_write_frame(fmtCtx, &packet) >= 0) {
-//                        hasWriteKeyFrame = true;
-//                        writeFrameCount += 1;
-//                    }
-//                } else {
-//                    if (hasWriteKeyFrame) {
-//                        if (av_write_frame(fmtCtx, &packet) >= 0) {
-//                            writeFrameCount += 1;
-//                        }
-//                    }
-//                }
-//            } else {
-//                // 写入文件尾
-//                ret = av_write_trailer(fmtCtx);
-//                if (ret < 0) {
-//                    LOGI("Error writing trailer\n");
-//                }
-//                LOGI("Success writing trailer\n");
-//                break;
-//            }
+//            mWriteFlag.load(std::memory_order_acquire);
+            LOGI("mWriteFlag.load(std::memory_order_acquire %d", mWriteFlag.load(std::memory_order_acquire));
+            if (mWriteFlag.load(std::memory_order_acquire)) {
+                if(judgeFrameIsKeyFrame(packet.data[4])) {
+                    if (av_write_frame(fmtCtx, &packet) >= 0) {
+                        hasWriteKeyFrame = true;
+                        writeFrameCount += 1;
+                    }
+                } else {
+                    if (hasWriteKeyFrame) {
+                        if (av_write_frame(fmtCtx, &packet) >= 0) {
+                            writeFrameCount += 1;
+                        }
+                    }
+                }
+            }
+
+            if (!mWriteFlag.load(std::memory_order_acquire) && hasWriteKeyFrame && !mWriteComplete) {
+                LOGI("Success writing trailer2222222\n");
+
+                // 写入文件尾
+                ret = av_write_trailer(fmtCtx);
+                if (ret < 0) {
+                    LOGI("Error writing trailer\n");
+                }
+                LOGI("Success writing trailer\n");
+                mWriteComplete = true;
+            }
 //            popCachedFrame(packet);
         }
         av_packet_unref(&packet);
